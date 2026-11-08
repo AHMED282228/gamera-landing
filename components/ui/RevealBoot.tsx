@@ -3,76 +3,55 @@
 import { useEffect } from 'react'
 
 /**
- * Включает появление блоков при входе в кадр.
+ * Появление блоков и свет на маршруте.
  *
- * Один наблюдатель на всю страницу, а не по компоненту на секцию. Сами секции
- * при этом остаются серверными: им достаточно класса `reveal` в разметке, и
- * ничего из их содержимого в JS не уезжает.
- *
- * Почему не Motion, хотя он в проекте есть. Аудитория ищет эвакуатор с телефона
- * на обочине, и вес JS отодвигает момент, когда кнопка «Позвонить» станет
- * нажимаемой. Здесь весь код — полтора десятка строк, а анимацию считает CSS
- * мимо основного потока.
- *
- * Наблюдатель отпускает элемент сразу после срабатывания: блок появляется один
- * раз и больше не исчезает. Повторное появление при прокрутке вверх выглядит
- * как сбой — человек уже видел этот текст.
+ * .reveal, .h-light, .truck-figure получают .is-in, когда входят в экран.
+ * Уже пролистанное (ушло выше экрана, например переход по якорю) показывается
+ * сразу, без анимации — иначе человек видит пустоту на месте текста.
+ * .route-step получает .is-lit, когда доезжает до середины экрана, и теряет
+ * при прокрутке назад — огни маршрута идут за читателем.
  */
 export function RevealBoot() {
   useEffect(() => {
-    const nodes = document.querySelectorAll<HTMLElement>('.reveal, .reveal-line')
-    if (!nodes.length) return
-
-    /*
-     * Порог нулевой, зато нижняя граница поднята: блок оживает, когда вошёл в
-     * кадр на десятую часть высоты окна. Иначе на длинной секции анимация
-     * начиналась бы уже за краем экрана и человек видел бы её конец.
-     */
-    /** Ещё не показанные блоки. Нужен, чтобы обойти их при обгоне, см. ниже. */
+    const nodes = document.querySelectorAll<HTMLElement>('.reveal, .h-light, .truck-figure')
     const pending = new Set<HTMLElement>(nodes)
 
     const show = (node: HTMLElement, instant: boolean) => {
-      node.classList.add('is-in')
-      /*
-       * Анимировать то, что человек проскочил, не для кого — а вернувшись
-       * вверх, он увидел бы, как текст доезжает задним числом.
-       */
       if (instant) node.classList.add('reveal-instant')
+      node.classList.add('is-in')
       pending.delete(node)
       io.unobserve(node)
     }
-
-    /*
-     * Догнать обогнанные блоки.
-     *
-     * Наблюдатель зовёт обработчик только на смене состояния. Блок, который на
-     * загрузке был ниже экрана, а потом одним прыжком оказался выше — по якорю,
-     * клавишей End, быстрым махом на трекпаде — состояние не менял: как был
-     * «вне кадра», так и остался. Второго вызова не будет, и блок навсегда
-     * остаётся прозрачным.
-     *
-     * Поэтому при каждом срабатывании наблюдателя пробегаем по оставшимся и
-     * показываем те, что уже ушли за верхний край. Пробег дешёвый: блоков на
-     * странице чуть больше десятка, и с каждым показом их становится меньше.
-     */
     const catchUp = () => {
       for (const node of pending) {
         if (node.getBoundingClientRect().bottom < 0) show(node, true)
       }
     }
-
     const io = new IntersectionObserver(
       (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) show(entry.target as HTMLElement, false)
-        }
+        for (const e of entries) if (e.isIntersecting) show(e.target as HTMLElement, false)
         catchUp()
       },
-      { rootMargin: '0px 0px -10% 0px' },
+      { rootMargin: '0px 0px -8% 0px' },
     )
+    nodes.forEach((n) => io.observe(n))
 
-    for (const node of nodes) io.observe(node)
-    return () => io.disconnect()
+    const steps = document.querySelectorAll<HTMLElement>('.route-step')
+    const lit = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          const on = e.isIntersecting || e.boundingClientRect.top < 0
+          e.target.classList.toggle('is-lit', on)
+        }
+      },
+      { rootMargin: '0px 0px -50% 0px' },
+    )
+    steps.forEach((s) => lit.observe(s))
+
+    return () => {
+      io.disconnect()
+      lit.disconnect()
+    }
   }, [])
 
   return null

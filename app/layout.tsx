@@ -1,15 +1,23 @@
 import type { Metadata, Viewport } from 'next'
-import { Golos_Text, JetBrains_Mono, Oswald } from 'next/font/google'
+import { Geologica, Golos_Text, Inter, Oswald } from 'next/font/google'
 
-import { BRAND, POSTER_ALT, SITE_URL } from '@/lib/config'
+import { BRAND, PHONE_DISPLAY, POSTER_ALT, REGION_SHORT, SITE_URL } from '@/lib/config'
 import { businessJsonLd } from '@/lib/jsonld'
 
 import './globals.css'
+import './order-demo.css'
+import './sections.css'
 
-const oswald = Oswald({
+/*
+ * Заголовки — Geologica: кириллица в ней родная, а оси наклона (slnt) и
+ * курсивных форм (CRSV) дают вторую строку заголовка тем же шрифтом:
+ * тяжёлая прямая строка и лёгкая наклонная. Ось SHRP (острота углов) не
+ * берём — без неё файл легче, а первый экран быстрее.
+ */
+const geologica = Geologica({
   subsets: ['cyrillic', 'latin'],
-  weight: ['500', '600', '700'],
-  variable: '--font-oswald',
+  axes: ['slnt', 'CRSV'],
+  variable: '--font-geologica',
   display: 'swap',
 })
 
@@ -20,11 +28,27 @@ const golos = Golos_Text({
   display: 'swap',
 })
 
-const jetbrains = JetBrains_Mono({
+/*
+ * Шрифты экрана iPhone в блоке «Заказ в боте»: Inter вместо системного
+ * шрифта iOS (близок к нему и одинаков на всех устройствах) и Oswald с Inter —
+ * как в самом мини-приложении бота. preload: false — первый экран их не ждёт,
+ * а скачиваются они, только когда блок подъезжает к экрану (класс is-near
+ * включает их в order-demo.css).
+ */
+const inter = Inter({
   subsets: ['cyrillic', 'latin'],
-  weight: ['400', '500'],
-  variable: '--font-jetbrains',
+  weight: ['400', '500', '600'],
+  variable: '--font-inter',
   display: 'swap',
+  preload: false,
+})
+
+const oswald = Oswald({
+  subsets: ['cyrillic', 'latin'],
+  weight: ['500', '700'],
+  variable: '--font-oswald',
+  display: 'swap',
+  preload: false,
 })
 
 /**
@@ -35,7 +59,9 @@ const jetbrains = JetBrains_Mono({
  * из него человек считает данным.
  */
 const DESCRIPTION =
-  'Эвакуатор в Санкт-Петербурге и Ленинградской области, круглосуточно. Выездные аппарели и лебёдка: заберём после ДТП, с пробитым колесом и заглохшую.'
+  'Эвакуатор 24/7 в Санкт-Петербурге и Ленобласти. Выдвижные аппарели и лебёдка: заберём после ДТП, заглохшую, с пробитым колесом и низкую машину.'
+
+const OG_ALT = `${BRAND}: эвакуатор 24/7, ${REGION_SHORT}, телефон ${PHONE_DISPLAY}. ${POSTER_ALT}`
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -43,9 +69,10 @@ export const metadata: Metadata = {
   description: DESCRIPTION,
   alternates: { canonical: '/' },
   /*
-   * Картинка ссылки — тот же постер, что показывается на первом экране: он уже
-   * лежит в трёх размерах и уже скачан. Отдельная картинка под соцсети была бы
-   * лишним файлом ради того же кадра.
+   * Картинка ссылки — карточка 1200×630 (scripts/make-og.mjs): тот же ночной
+   * постер, а внизу «Эвакуатор 24/7» и номер. Раньше здесь стоял голый постер —
+   * в пересланной ссылке он говорил только «какой-то эвакуатор». Посетителю
+   * сайта карточка не грузится: её берут только мессенджеры и соцсети.
    */
   openGraph: {
     type: 'website',
@@ -56,10 +83,10 @@ export const metadata: Metadata = {
     description: DESCRIPTION,
     images: [
       {
-        url: '/media/poster-1280.jpg',
-        width: 1280,
-        height: 720,
-        alt: POSTER_ALT,
+        url: '/og-1200.jpg',
+        width: 1200,
+        height: 630,
+        alt: OG_ALT,
       },
     ],
   },
@@ -67,13 +94,13 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Эвакуатор в СПб и Ленобласти 24/7 — G.AMERA',
     description: DESCRIPTION,
-    images: ['/media/poster-1280.jpg'],
+    images: [{ url: '/og-1200.jpg', alt: OG_ALT }],
   },
   robots: { index: true, follow: true },
 }
 
 export const viewport: Viewport = {
-  themeColor: '#0B070F',
+  themeColor: '#0A0B0E',
   colorScheme: 'dark',
 }
 
@@ -81,7 +108,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang="ru"
-      className={`${oswald.variable} ${golos.variable} ${jetbrains.variable}`}
+      className={`${geologica.variable} ${golos.variable} ${inter.variable} ${oswald.variable}`}
     >
       <head>
         {/*

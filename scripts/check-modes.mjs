@@ -4,6 +4,13 @@
  *
  *   node scripts/check-modes.mjs [--url ...]
  */
+import { readFileSync } from 'node:fs'
+// Имена файлов зависят от кадра первой сцены (lib/config.ts → WIDE_SHOT).
+const WIDE = /export const WIDE_SHOT = true/.test(readFileSync('lib/config.ts', 'utf8'))
+const CLIP = WIDE
+  ? { narrow: 'load21_1114.mp4', wide: 'load21_1672.mp4' }
+  : { narrow: 'load_854.mp4', wide: 'load_1280.mp4' }
+const isLoop = (name) => /^loop(21)?_/.test(name)
 import { chromium } from 'playwright'
 
 const args = process.argv.slice(2)
@@ -23,15 +30,21 @@ const mp4sOf = (page) => {
   const seen = []
   page.on('request', (r) => {
     const p = new URL(r.url()).pathname
-    if (p.endsWith('.mp4')) seen.push(p.split('/').pop())
+    if (!p.endsWith('.mp4')) return
+    const name = p.split('/').pop()
+    // Петля первого экрана — отдельный клип, у неё своя проверка ниже: в счёт
+    // версий промотки она не идёт.
+    if (isLoop(name)) seen.loops.push(name)
+    else seen.push(name)
   })
+  seen.loops = []
   return seen
 }
 
 const waitReady = (page) =>
   page.waitForFunction(
     () => {
-      const v = document.querySelector('.scrub-stage-media video')
+      const v = document.querySelector('.scrub-stage-media video:not([loop])')
       return v && v.readyState >= 2
     },
     null,
@@ -43,10 +56,10 @@ const run = async () => {
 
   // --- Выбор версии по ширине ----------------------------------------------
   for (const [label, width, expect] of [
-    ['мобильная ширина 375px', 375, 'load_854.mp4'],
-    ['узкий край порога 899px', 899, 'load_854.mp4'],
-    ['широкий край порога 900px', 900, 'load_1280.mp4'],
-    ['десктоп 1440px', 1440, 'load_1280.mp4'],
+    ['мобильная ширина 375px', 375, CLIP.narrow],
+    ['узкий край порога 899px', 899, CLIP.narrow],
+    ['широкий край порога 900px', 900, CLIP.wide],
+    ['десктоп 1440px', 1440, CLIP.wide],
   ]) {
     const page = await browser.newPage({ viewport: { width, height: 800 } })
     const seen = mp4sOf(page)
@@ -57,6 +70,12 @@ const run = async () => {
     console.log(`\n${label}:`)
     check(seen.length === 1, 'загружена ровно одна версия', seen.join(', ') || 'ни одной')
     check(seen[0] === expect, `версия ${expect}`, seen[0])
+    const loopExpect = expect.replace(/^load/, 'loop')
+    check(
+      seen.loops.length === 1 && seen.loops[0] === loopExpect,
+      `петля той же ширины (${loopExpect})`,
+      seen.loops.join(', ') || 'не загружена',
+    )
     await page.close()
   }
 
@@ -75,16 +94,16 @@ const run = async () => {
     })
     await page.waitForTimeout(900)
     const before = await page.evaluate(
-      () => document.querySelector('.scrub-stage-media video').currentTime,
+      () => document.querySelector('.scrub-stage-media video:not([loop])').currentTime,
     )
     await page.setViewportSize({ width: 700, height: 900 })
     await page.waitForTimeout(900)
     const after = await page.evaluate(() => {
-      const v = document.querySelector('.scrub-stage-media video')
+      const v = document.querySelector('.scrub-stage-media video:not([loop])')
       return { time: v.currentTime, src: v.currentSrc.split('/').pop() }
     })
     check(seen.length === 1, 'вторая версия не подгрузилась', seen.join(', '))
-    check(after.src === 'load_1280.mp4', 'src не сменился', after.src)
+    check(after.src === CLIP.wide, 'src не сменился', after.src)
     check(after.time > 0.1, 'время не сброшено в ноль', `${before.toFixed(2)} → ${after.time.toFixed(2)} с`)
     await page.close()
   }
@@ -203,7 +222,7 @@ const run = async () => {
         // абзац внутри, поэтому смотреть надо на них.
         const els = [
           document.querySelector('.hero-copy'),
-          ...document.querySelectorAll('.scrub-caption h2'),
+          ...document.querySelectorAll('.scrub-section:not(.scrub-section--unload) .scrub-caption h2'),
         ].filter(Boolean)
         const ops = els
           .map((el) => Number(getComputedStyle(el).opacity))
@@ -218,10 +237,9 @@ const run = async () => {
     }
     check(blocks >= 4, 'первый экран и три подписи на месте', `${blocks} блока`)
 
-    // Лесенка: каждая подпись ниже предыдущей, и в момент, когда текст встал
-    // на место, ползунок шкалы стоит против его заголовка.
+    // Лесенка: каждая подпись ниже предыдущей (шкалы с ползунком больше нет).
     const rungs = await page.evaluate(() => {
-      const caps = [...document.querySelectorAll('.scrub-caption')]
+      const caps = [...document.querySelectorAll('.scrub-section:not(.scrub-section--unload) .scrub-caption')]
       return caps.map((el) => ({
         top: Math.round(el.getBoundingClientRect().top),
         anchor: Number(getComputedStyle(el).getPropertyValue('--anchor')),
@@ -234,49 +252,6 @@ const run = async () => {
       rungs.map((r) => r.top + 'px').join(' → '),
     )
 
-    let worstGap = 0
-    for (let i = 0; i < rungs.length; i++) {
-      await page.evaluate((y) => window.scrollTo(0, y), travel * rungs[i].anchor)
-      await page.waitForTimeout(800)
-      const gap = await page.evaluate((idx) => {
-        const m = document.querySelector('.scrub-marker').getBoundingClientRect()
-        const h = document
-          .querySelectorAll('.scrub-caption')
-          [idx].querySelector('h2')
-          .getBoundingClientRect()
-        return Math.abs(m.top + m.height / 2 - (h.top + h.height / 2))
-      }, i)
-      worstGap = Math.max(worstGap, gap)
-    }
-    check(
-      worstGap <= 10,
-      'ползунок встаёт против заголовка',
-      `худшее расхождение центров ${Math.round(worstGap)}px`,
-    )
-
-    // Ползунок обязан пройти шкалу целиком: от верхнего края до нижнего.
-    // Легко потерять, если правку выравнивания снова повесить на его ход.
-    const ends = async (q) => {
-      await page.evaluate((y) => window.scrollTo(0, y), travel * q)
-      await page.waitForTimeout(800)
-      return page.evaluate(() => {
-        const r = document.querySelector('.scrub-rail').getBoundingClientRect()
-        const m = document.querySelector('.scrub-marker').getBoundingClientRect()
-        return { top: m.top - r.top, bottom: r.bottom - m.bottom }
-      })
-    }
-    const atStart = await ends(0)
-    const atEnd = await ends(1)
-    check(
-      Math.abs(atStart.top) <= 2,
-      'в начале ползунок у верхнего края шкалы',
-      `зазор ${Math.round(atStart.top)}px`,
-    )
-    check(
-      Math.abs(atEnd.bottom) <= 2,
-      'в конце ползунок доходит до нижнего края',
-      `зазор ${Math.round(atEnd.bottom)}px`,
-    )
     check(
       worstPair < 0.05,
       'на всей прокрутке виден только один текст',
@@ -312,7 +287,11 @@ const run = async () => {
         viewport: window.innerHeight,
       }
     })
-    check(seen.length === 0, 'клип не загружается вовсе', seen.join(', ') || 'ни одного запроса')
+    check(
+      seen.length === 0 && seen.loops.length === 0,
+      'клип и петля не загружаются вовсе',
+      [...seen, ...seen.loops].join(', ') || 'ни одного запроса',
+    )
     check(state.posterShown, 'постер на экране')
     check(state.captionOpacity === '1', 'подпись видима', `opacity ${state.captionOpacity}`)
     check(state.captionText > 40, 'текст подписи на месте', `${state.captionText} символов`)

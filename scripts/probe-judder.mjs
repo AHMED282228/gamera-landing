@@ -29,7 +29,7 @@ const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
 await page.goto(URL_, { waitUntil: 'load' })
 await page.waitForFunction(
   () => {
-    const v = document.querySelector('.scrub-stage-media video')
+    const v = document.querySelector('.scrub-stage-media video:not([loop])')
     return v && v.readyState >= 2
   },
   null,
@@ -42,7 +42,7 @@ const geo = await page.evaluate(() => {
 })
 
 await page.evaluate(() => {
-  const v = document.querySelector('.scrub-stage-media video')
+  const v = document.querySelector('.scrub-stage-media video:not([loop])')
   window.__frames = []
   window.__seeks = []
   const desc = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'currentTime')

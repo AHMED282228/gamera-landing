@@ -1,84 +1,70 @@
-import { PHONE_DISPLAY, PHONE_HREF, TG_CONFIGURED, TG_LINK } from '@/lib/config'
+import { PHONE_DISPLAY, PHONE_HREF, TG_CHANNEL, TG_CONFIGURED, TG_LINK } from '@/lib/config'
+import { ArrowUpRight, PhoneIcon, TelegramIcon } from './Icons'
 
 /**
- * Две кнопки действия. Живут отдельным компонентом, потому что повторяются
- * на первом экране, в финальном блоке и в прилипшей мобильной панели.
+ * Кнопки вызова. Обычные ссылки: работают без JS и открываются в одно касание.
  *
- * Текст на красном — чистый белый, а не --ink: на --red-hot у --ink контраст
- * 4.38 при требуемых 4.5, у белого 5.13.
+ * Бот — главная (красная), звонок — рядом, всегда: Telegram в России
+ * замедляют, и у части людей он может не открыться.
  */
 
-/*
- * Отклик на нажатие — сжатие до 0.97, а не сдвиг на пиксель, как было раньше.
- *
- * Сдвиг вниз читается как «кнопка съехала», особенно когда рядом стоит вторая:
- * ряд на мгновение теряет общую линию. Сжатие же ощущается как настоящее
- * нажатие — кнопка уходит под палец, а не в сторону, и соседи стоят на месте.
- */
-const BASE =
-  'inline-flex min-h-12 items-center justify-center px-6 font-display text-label ' +
-  'font-semibold uppercase tracking-[0.12em] rounded-xs cursor-pointer ' +
-  'btn-motion active:scale-[0.97]'
+type Tone = 'dark' | 'red'
 
-export function CallButton({ className = '' }: { className?: string }) {
-  return (
-    <a
-      href={PHONE_HREF}
-      className={`${BASE} bg-red text-on-red hover:bg-red-hot ${className}`}
-    >
-      Позвонить
-    </a>
-  )
-}
-
-/**
- * Кнопка в Telegram-бота.
- *
- * Пока юзернейм бота не заполнен, кнопки нет вовсе. Заглушка в конфиге —
- * это строка внутри адреса, и собранная страница уносила её прямо в href:
- * получалась живая кнопка на t.me/__ЗАПОЛНИТЬ__, то есть на несуществующий
- * аккаунт. Человек со сломавшейся машиной жмёт её, видит ошибку Telegram и
- * уходит — хуже, чем если бы кнопки не было.
- *
- * Как только в config.ts появится настоящее имя, кнопка вернётся сама везде,
- * где она расставлена. До тех пор работает телефон — главное действие по брифу.
- */
-export function BotButton({ className = '' }: { className?: string }) {
+export function BotButton({ className = '', tone = 'dark' }: { className?: string; tone?: Tone }) {
   if (!TG_CONFIGURED) return null
-
   return (
     <a
       href={TG_LINK}
       target="_blank"
       rel="noopener"
-      className={`${BASE} border border-steel-1 text-ink hover:border-steel-3 hover:text-white ${className}`}
+      className={`btn btn-motion ${tone === 'red' ? 'btn--light' : 'btn--primary'} ${className}`}
     >
+      <TelegramIcon className="btn__icon" />
       Заказать в боте
     </a>
   )
 }
 
 /**
- * Телефон отдельной строкой — его читают глазами, а не только жмут.
- *
- * Размер задаётся отдельным свойством, а не классом через className: у Tailwind
- * два класса размера не спорят по «кто последний в строке», побеждает тот, что
- * ниже в собранном CSS. Переданный снаружи text-lead молча проигрывал базовому
- * text-mono, и телефон в блоке стоимости оставался мелким.
+ * withNumber: «Позвонить · 8 (911) …» — номер виден, его можно продиктовать
+ * или набрать с другого телефона. compact: в узкой панели на компьютере
+ * вместо слова показывается сам номер (.call-word / .call-num).
  */
-export function PhoneLink({
-  size = 'mono',
+export function CallButton({
   className = '',
+  withNumber = false,
+  compact = false,
+  tone = 'dark',
 }: {
-  size?: 'mono' | 'lead'
   className?: string
+  withNumber?: boolean
+  compact?: boolean
+  tone?: Tone
 }) {
+  const look = tone === 'red' ? 'btn--outline-light' : TG_CONFIGURED ? 'btn--ghost' : 'btn--primary'
   return (
-    <a
-      href={PHONE_HREF}
-      className={`font-mono ${size === 'lead' ? 'text-lead' : 'text-mono'} whitespace-nowrap tracking-[0.06em] text-steel-3 transition-tint duration-200 hover:text-ink ${className}`}
-    >
-      {PHONE_DISPLAY}
+    <a href={PHONE_HREF} className={`btn btn-motion ${look} ${className}`}>
+      <PhoneIcon className="btn__icon" />
+      {compact ? (
+        <>
+          <span className="call-word">Позвонить</span>
+          <span className="call-num">{PHONE_DISPLAY}</span>
+        </>
+      ) : (
+        <>
+          <span className="call-label">Позвонить</span>
+          {withNumber && <span className="btn__sub tnum">{PHONE_DISPLAY}</span>}
+        </>
+      )}
+    </a>
+  )
+}
+
+export function ChannelLink({ label = 'Открыть канал', className = '' }: { label?: string; className?: string }) {
+  return (
+    <a href={TG_CHANNEL} target="_blank" rel="noopener" className={`link-arrow ${className}`}>
+      {label}
+      <ArrowUpRight />
     </a>
   )
 }

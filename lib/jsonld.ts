@@ -5,6 +5,8 @@ import {
   PHONE_E164,
   SITE_URL,
   TAGLINE,
+  TG_CHANNEL,
+  WIDE_SHOT,
 } from './config'
 
 /**
@@ -36,9 +38,11 @@ export function businessJsonLd() {
     description:
       'Служба эвакуации в Санкт-Петербурге и Ленинградской области. Эвакуатор с ломаной платформой, выездными аппарелями и лебёдкой. Круглосуточно.',
     url: SITE_URL,
-    image: `${SITE_URL}/media/poster-1280.jpg`,
+    image: `${SITE_URL}/media/${WIDE_SHOT ? 'poster21-1672.jpg' : 'poster-1280.jpg'}`,
     logo: `${SITE_URL}${LOGO.full.src}`,
     telephone: PHONE_E164,
+    /* Канал с фото вызовов — та же служба на другой площадке. */
+    sameAs: [TG_CHANNEL],
     areaServed: AREA_SERVED.map((name) => ({
       '@type': 'AdministrativeArea',
       name,

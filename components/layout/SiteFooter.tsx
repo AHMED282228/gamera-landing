@@ -1,75 +1,69 @@
-import { AREA_SERVED, BRAND, LOGO, REGION, TAGLINE } from '@/lib/config'
-import { PhoneLink } from '@/components/ui/ActionButtons'
+import { BRAND, LOGO, PHONE_DISPLAY, PHONE_HREF, REGION, TG_BOT, TG_CHANNEL, TG_LINK } from '@/lib/config'
 
-/**
- * Подвал. Логотип целиком показывается только здесь — в шапке для него нет
- * высоты, лого вертикальное, и слово AMERA там ужалось бы до нечитаемого.
- *
- * Картинка ленивая: она ниже первого экрана и не должна отбирать канал
- * ни у постера, ни у клипа.
- *
- * Раньше здесь стояли только логотип слева и телефон справа, а между ними
- * зияла пустая полоса во весь экран. Подвал — последнее, что человек видит,
- * и пустая строка на прощание читается как «сайт кончился, потому что кончились
- * силы». Теперь это сетка из четырёх колонок с оглавлением: заодно появилась
- * навигация, которой на странице не было вовсе — вернуться к нужному разделу
- * можно было только прокруткой.
- */
 const NAV = [
-  { href: '#cases', label: 'В каких случаях' },
-  { href: '#ways', label: 'Позвонить или написать' },
-  { href: '#steps', label: 'Как проходит вызов' },
-  { href: '#coverage', label: 'Зона работы и цена' },
-]
+  ['#cases', 'Когда вызывают'],
+  ['#steps', 'Как проходит вызов'],
+  ['#truck', 'Наш эвакуатор'],
+  ['#photos', 'Фото с вызовов'],
+  ['#coverage', 'Зона выезда'],
+  ['#faq', 'Вопросы'],
+] as const
 
 export function SiteFooter() {
   return (
-    <footer className="shell border-t border-steel-1/40 pt-block pb-8">
-      <div className="grid gap-x-12 gap-y-10 lg:grid-cols-[auto_minmax(0,1fr)_auto]">
-        <img
-          src={LOGO.full.src}
-          width={LOGO.full.width}
-          height={LOGO.full.height}
-          alt={`${BRAND} — ${TAGLINE.toLowerCase()}`}
-          loading="lazy"
-          decoding="async"
-          className="h-auto w-[11.5rem] self-start"
-        />
-
-        <nav aria-label="Разделы страницы">
-          <p className="eyebrow mb-4">Разделы</p>
-          <ul className="flex flex-col gap-3">
-            {NAV.map((n) => (
-              <li key={n.href}>
-                <a
-                  href={n.href}
-                  className="font-display text-h3 uppercase tracking-[0.01em] text-steel-3 transition-tint duration-200 hover:text-ink"
-                >
-                  {n.label}
-                </a>
+    <footer className="site-footer shell">
+      <div className="footer-grid">
+        <div>
+          <div className="brand">
+            <img
+              src={LOGO.mark.src}
+              width={LOGO.mark.width}
+              height={LOGO.mark.height}
+              alt=""
+              aria-hidden="true"
+              className="brand-mark"
+              loading="lazy"
+            />
+            <span className="brand-name">{BRAND}</span>
+          </div>
+          <p className="mt-4 max-w-[34ch]">
+            Эвакуатор в Санкт-Петербурге и Ленинградской области. Круглосуточно, без выходных.
+          </p>
+        </div>
+        <nav aria-label="Разделы">
+          <h3>Разделы</h3>
+          <ul>
+            {NAV.map(([href, label]) => (
+              <li key={href}>
+                <a href={href}>{label}</a>
               </li>
             ))}
           </ul>
         </nav>
-
-        <div className="flex flex-col gap-4 lg:items-end lg:text-right">
-          <p className="eyebrow">Круглосуточно</p>
-          <PhoneLink size="lead" />
-          {/* --steel-1 сюда не годится: 3.54 к фону, а тексту нужно 4.5.
-              Он остаётся цветом разделителей и рамок, как и задумано. */}
-          <p className="text-label text-steel-2">{REGION}</p>
+        <div>
+          <h3>Связь</h3>
+          <ul>
+            <li>
+              <a href={PHONE_HREF} className="tnum">
+                {PHONE_DISPLAY}
+              </a>
+            </li>
+            <li>
+              <a href={TG_LINK} target="_blank" rel="noopener">
+                Бот @{TG_BOT}
+              </a>
+            </li>
+            <li>
+              <a href={TG_CHANNEL} target="_blank" rel="noopener">
+                Канал с вызовами
+              </a>
+            </li>
+            <li>{REGION}</li>
+          </ul>
         </div>
       </div>
-
-      {/*
-        Нижняя строка — города текстом. Это не украшение: поисковик читает их
-        как подтверждение зоны работы, а человек — как ответ на «а до меня
-        доедете». Год не ставим: он не несёт смысла и через год превращается
-        в признак заброшенного сайта.
-      */}
-      <p className="mt-10 border-t border-steel-1/25 pt-6 text-label text-steel-2">
-        {BRAND} — {TAGLINE.toLowerCase()}. {AREA_SERVED.join(', ')}. Работаем без
-        выходных.
+      <p className="mt-10">
+        © {new Date().getFullYear()} {BRAND}
       </p>
     </footer>
   )

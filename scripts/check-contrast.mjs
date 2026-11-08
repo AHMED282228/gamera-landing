@@ -94,6 +94,12 @@ const collect = () => {
     const fg = parse(st.color)
     if (!fg) continue
 
+    // Подписи на компьютере: буквы прозрачные и залиты светом фары
+    // (background-clip: text), а под ними клип в окне света. Это текст поверх
+    // картинки — его меряет check-legibility.mjs, с цветом букв в свете.
+    const clip = st.backgroundClip || st.webkitBackgroundClip
+    if (fg[3] === 0 && clip === 'text' && el.closest('.scrub-caption')) continue
+
     // Мотион гасит уходящие блоки прозрачностью — меряем их в полную силу,
     // иначе каждый снимок ловил бы полурастворённый текст.
     const bg = backdrop(el)

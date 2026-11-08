@@ -1,7 +1,7 @@
 /**
  * Снимает первый экран и пару точек промотки на нескольких ширинах.
  *
- *   node scripts/shoot.mjs [--url ...] [--stops 0,0.25]
+ *   node scripts/shoot.mjs [--url ...] [--stops 0,0.25] [--out папка]
  */
 import { mkdirSync, rmSync } from 'node:fs'
 import { chromium } from 'playwright'
@@ -13,8 +13,10 @@ const arg = (n, d) => {
 }
 const URL_ = arg('url', 'http://localhost:4321')
 const STOPS = arg('stops', '0,0.25,0.6').split(',').map(Number)
-const OUT =
-  'C:/Temp/claude/c--Users-AHMED-Desktop-VideoWeb/0cfbab2b-cb3c-4203-bc9e-d0adeabff0e6/scratchpad/shots'
+const OUT = arg(
+  'out',
+  'C:/Temp/claude/c--Users-AHMED-Desktop-VideoWeb/0cfbab2b-cb3c-4203-bc9e-d0adeabff0e6/scratchpad/shots',
+)
 
 const SIZES = [
   { name: 'w1280', width: 1280, height: 800 },
@@ -49,7 +51,7 @@ const run = async () => {
     }
     await page.waitForFunction(
       () => {
-        const v = document.querySelector('.scrub-stage-media video')
+        const v = document.querySelector('.scrub-stage-media video:not([loop])')
         return v && v.readyState >= 2
       },
       null,

@@ -68,7 +68,7 @@ const run = async () => {
     await page.waitForTimeout(1500)
     const visible = await page.evaluate(() => {
       const img = document.querySelector('.scrub-stage-media img')
-      const v = document.querySelector('.scrub-stage-media video')
+      const v = document.querySelector('.scrub-stage-media video:not([loop])')
       return {
         posterShown: !!img && getComputedStyle(img).opacity !== '0',
         videoHidden: !v || getComputedStyle(v).opacity === '0',
@@ -89,7 +89,7 @@ const run = async () => {
     await page.mouse.wheel(0, 6)
     await page.waitForFunction(
       () => {
-        const v = document.querySelector('.scrub-stage-media video')
+        const v = document.querySelector('.scrub-stage-media video:not([loop])')
         return v && v.readyState >= 2
       },
       null,
@@ -99,7 +99,7 @@ const run = async () => {
     await page.evaluate(() => window.scrollTo(0, 0))
     await page.waitForTimeout(1200)
     const state = await page.evaluate(() => {
-      const v = document.querySelector('.scrub-stage-media video')
+      const v = document.querySelector('.scrub-stage-media video:not([loop])')
       return { time: v.currentTime, opacity: getComputedStyle(v).opacity }
     })
     console.log('\nклип загружен:')

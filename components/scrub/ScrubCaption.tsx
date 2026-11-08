@@ -3,7 +3,7 @@
 import { motion, useTransform, type MotionValue } from 'motion/react'
 import type { CSSProperties } from 'react'
 
-import { anchorOf, ENTER, EXIT, RISE, STAGGER } from '@/lib/scrubTimeline'
+import { anchorOf, captionKeys, RISE } from '@/lib/scrubTimeline'
 
 type Props = {
   progress: MotionValue<number>
@@ -16,12 +16,11 @@ type Props = {
 
 /**
  * Подпись занимает то же поле, что и первый экран: текст сменяется, а место
- * остаётся. Затемнять под ней нечего — поле лежит на чистом --bg, левее кадра.
+ * остаётся. Одно слово заголовком и строка под ним. Буквы проявляет свет
+ * фары (HeadlightWindow).
  */
 export function ScrubCaption({ progress, from, to, title, text }: Props) {
-  const span = to - from
-  const enterEnd = from + span * ENTER
-  const exitStart = to - span * EXIT
+  const { enterEnd, exitStart, textFrom, textEnterEnd } = captionKeys({ from, to })
 
   const titleOpacity = useTransform(
     progress,
@@ -32,8 +31,6 @@ export function ScrubCaption({ progress, from, to, title, text }: Props) {
     clamp: true,
   })
 
-  const textFrom = from + span * ENTER * STAGGER
-  const textEnterEnd = enterEnd + span * ENTER * STAGGER
   const textOpacity = useTransform(
     progress,
     [textFrom, textEnterEnd, exitStart, to],
@@ -50,13 +47,13 @@ export function ScrubCaption({ progress, from, to, title, text }: Props) {
     >
       <motion.h2
         style={{ opacity: titleOpacity, y: titleY }}
-        className="font-display text-h2 tracking-[0.01em] text-ink"
+        className="text-h2 text-ink"
       >
         {title}
       </motion.h2>
       <motion.p
         style={{ opacity: textOpacity, y: textY }}
-        className="mt-4 text-lead text-steel-2"
+        className="mt-3 text-lead text-ink-2"
       >
         {text}
       </motion.p>

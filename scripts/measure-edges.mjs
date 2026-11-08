@@ -105,7 +105,7 @@ const BANDS = [
  * того кадра, что уже стоит на сайте и всех устраивает». Эталон — нынешний
  * постер, и меряем расхождение с ним.
  */
-const REF = flag('ref', 'public/media/poster-1920.jpg')
+const REF = flag('ref', 'public/media/poster-1280.jpg')
 
 console.log(`фон страницы --bg: ${hex(bg)}`)
 console.log(`эталон: ${REF}\n`)

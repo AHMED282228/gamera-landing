@@ -1,0 +1,1294 @@
+/* ==========================================================================
+   «Заказ в боте»: этапы + iPhone с чатом Telegram и мини-приложением.
+   Внутри iPhone всё в точках экрана (402 × 874), корпус масштабируется --k.
+   Цвета чата — тёмная тема Telegram для iOS (исходники Telegram-iOS,
+   DefaultDarkPresentationTheme); цвета формы — styles.css мини-приложения бота.
+   ========================================================================== */
+
+/* --- Раскладка блока ------------------------------------------------------ */
+
+.order-wrap {
+  position: relative;
+  margin-top: var(--spacing-block);
+}
+
+.order-steps {
+  --node: 2.75rem;
+}
+
+.order-step {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--node) minmax(0, 1fr);
+  gap: 0 clamp(1.25rem, 3vw, 2.5rem);
+}
+
+.order-node {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: var(--node);
+  height: var(--node);
+  border-radius: 50%;
+  background: var(--color-bg);
+  border: 1px solid var(--color-line-strong);
+  color: var(--color-ink-3);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.9375rem;
+  transition:
+    border-color 500ms var(--ease-out-quart),
+    color 500ms var(--ease-out-quart),
+    box-shadow 700ms var(--ease-out-quart),
+    background-color 500ms var(--ease-out-quart);
+}
+
+.order-step.is-lit .order-node {
+  border-color: var(--color-amber);
+  background: #1b1508;
+  color: var(--color-amber);
+  box-shadow:
+    0 0 0 6px rgb(255 178 30 / 0.08),
+    0 0 26px rgb(255 178 30 / 0.35);
+}
+
+/* Пунктир между кружками: одинаковые зазоры у обоих кружков (10 px), шаг
+   подогнан под длину в OrderDemo. */
+.order-dashes {
+  position: absolute;
+  left: calc(var(--node) / 2 - 1px);
+  top: calc(var(--node) + 10px);
+  bottom: 10px;
+  width: 2px;
+}
+
+.order-dashes svg {
+  display: block;
+}
+
+.order-dashes__base {
+  stroke: rgb(233 233 226 / 0.38);
+  stroke-width: 2;
+}
+
+.order-dashes__lit {
+  stroke: var(--color-amber);
+  stroke-width: 2;
+}
+
+.order-dashes__fill {
+  position: absolute;
+  inset: 0;
+  clip-path: inset(0 0 100% 0);
+  filter: drop-shadow(0 0 3px rgb(255 178 30 / 0.7));
+  transition: clip-path 900ms var(--ease-out-quart);
+}
+
+.order-dashes.is-lit .order-dashes__fill {
+  clip-path: inset(0);
+}
+
+.order-step__body {
+  max-width: 34rem;
+  padding-top: 0.45rem;
+  padding-bottom: clamp(3.5rem, 12vh, 7rem);
+  transition: opacity 500ms var(--ease-out-quart);
+}
+
+.order-step:last-child .order-step__body {
+  padding-bottom: 0;
+}
+
+.order-step h3 {
+  font-size: var(--text-h3);
+  line-height: 1.12;
+}
+
+.order-step__text {
+  margin-top: 0.6rem;
+  color: var(--color-ink-2);
+  max-width: 46ch;
+}
+
+.order-step.is-lit .route-status {
+  border-color: rgb(255 178 30 / 0.55);
+  color: var(--color-amber);
+}
+
+.order-cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: var(--spacing-block);
+}
+
+.order-phone {
+  position: relative;
+  margin: 0;
+}
+
+/* Подсветка за телефоном: тёплый свет, как от экрана в ночной машине. */
+.order-phone::before {
+  content: '';
+  position: absolute;
+  inset: 12% 8%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(243 228 200 / 0.09), transparent);
+  filter: blur(20px);
+  pointer-events: none;
+}
+
+/* Компьютер: этапы слева, телефон закреплён справа. */
+@media (min-width: 1024px) {
+  .order-wrap {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(18rem, 25rem);
+    gap: 0 clamp(2rem, 6vw, 7rem);
+    align-items: start;
+  }
+
+  /* Снизу справа висит панель с кнопками (≈6 rem) — телефон кончается выше. */
+  .order-stage {
+    order: 2;
+    position: sticky;
+    top: 5.25rem;
+    height: calc(100svh - 5.25rem - 7.25rem);
+  }
+
+  .order-phone {
+    height: 100%;
+  }
+
+  .order-steps {
+    order: 1;
+    padding-top: 16svh;
+    padding-bottom: 34svh;
+  }
+
+  .order-cap {
+    display: none;
+  }
+
+  /* Не текущий этап приглушён, но читается. */
+  html.js .order-step:not(.is-lit) .order-step__body {
+    opacity: 0.4;
+  }
+
+  .order-cta {
+    padding-left: calc(2.75rem + clamp(1.25rem, 3vw, 2.5rem));
+  }
+}
+
+/* Телефон и планшет: iPhone закреплён, над ним подпись этапа; список
+   этапов — только длина прокрутки (текст остаётся для экранного чтеца). */
+@media (max-width: 1023.98px) {
+  html.js .order-stage {
+    position: sticky;
+    top: 3.75rem;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+    height: calc(100svh - 3.75rem - 5.75rem);
+    padding-top: 0.5rem;
+    background: var(--color-bg);
+  }
+
+  html.js .order-phone {
+    flex: 1;
+    min-height: 0;
+  }
+
+  html.js .order-step {
+    height: 55svh;
+  }
+
+  html.js .order-node,
+  html.js .order-dashes {
+    display: none;
+  }
+
+  html.js .order-step__body {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .order-cap {
+    display: flex;
+    gap: 0.85rem;
+    align-items: flex-start;
+    min-height: 4.75rem;
+  }
+
+  html:not(.js) .order-cap {
+    display: none;
+  }
+
+  html:not(.js) .order-phone {
+    height: 70svh;
+    margin-bottom: var(--spacing-block);
+  }
+}
+
+.order-cap__no {
+  flex: none;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.75rem;
+  line-height: 1;
+  color: var(--color-amber);
+}
+
+.order-cap__no span {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-ink-3);
+}
+
+.order-cap__body {
+  display: grid;
+  gap: 0.25rem;
+  animation: order-cap-in 420ms var(--ease-out-expo) both;
+}
+
+.order-cap__body b {
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.order-cap__body > span {
+  font-size: 0.9375rem;
+  line-height: 1.4;
+  color: var(--color-ink-2);
+}
+
+@keyframes order-cap-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* --- iPhone 17 Pro ---------------------------------------------------------- */
+
+.iphone-fit {
+  --k: 0.7;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 18rem;
+}
+
+.iphone {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 434px;
+  height: 906px;
+  margin: -453px 0 0 -217px;
+  transform: scale(var(--k));
+  border-radius: 78px;
+  /* Тёмный титан: светлая кромка, блик по рёбрам. */
+  background: linear-gradient(155deg, #55575c 0%, #2b2c30 18%, #1d1e21 48%, #2a2c30 80%, #4d4f54 100%);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.18),
+    inset 0 0 3px 2px rgb(0 0 0 / 0.55),
+    0 70px 120px -50px rgb(0 0 0 / 0.95),
+    0 30px 60px -30px rgb(0 0 0 / 0.75);
+}
+
+.iphone__bezel {
+  position: absolute;
+  inset: 9px;
+  border-radius: 69px;
+  background: #000;
+}
+
+.iphone__screen {
+  position: absolute;
+  inset: 7px;
+  border-radius: 62px;
+  overflow: hidden;
+  background: #000;
+  isolation: isolate;
+}
+
+.iphone__island {
+  position: absolute;
+  z-index: 40;
+  top: 18px;
+  left: 50%;
+  width: 125px;
+  height: 37px;
+  margin-left: -62.5px;
+  border-radius: 19px;
+  background: #000;
+}
+
+.iphone__lens {
+  position: absolute;
+  right: 21px;
+  top: 50%;
+  width: 11px;
+  height: 11px;
+  margin-top: -5.5px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #34446a 0, #0c1324 45%, #000 70%);
+}
+
+.iphone__key {
+  position: absolute;
+  width: 4px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #232427, #5b5d62 50%, #232427);
+}
+
+.iphone__key--action { left: -3px; top: 178px; height: 36px; }
+.iphone__key--vol-up { left: -3px; top: 240px; height: 64px; }
+.iphone__key--vol-down { left: -3px; top: 318px; height: 64px; }
+.iphone__key--power { right: -3px; top: 268px; height: 100px; }
+.iphone__key--camera { right: -2px; top: 572px; height: 66px; width: 3px; }
+
+/* --- Telegram: чат ---------------------------------------------------------- */
+
+.tg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #000;
+  color: #fff;
+  font-family: -apple-system, system-ui, 'Segoe UI', sans-serif;
+  font-size: 16px;
+  line-height: 1.3;
+  text-align: left;
+  -webkit-font-smoothing: antialiased;
+}
+
+.order.is-near .tg {
+  font-family: var(--font-inter), -apple-system, system-ui, sans-serif;
+}
+
+.tg-status {
+  position: absolute;
+  z-index: 30;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 30px 0 52px;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.tg-icons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  fill: #fff;
+}
+
+.tg-battery {
+  position: relative;
+  width: 27px;
+  height: 13px;
+  padding: 1.5px;
+  border: 1.2px solid rgb(255 255 255 / 0.45);
+  border-radius: 4.5px;
+}
+
+.tg-battery span {
+  display: block;
+  width: 72%;
+  height: 100%;
+  border-radius: 2px;
+  background: #fff;
+}
+
+.tg-battery::after {
+  content: '';
+  position: absolute;
+  right: -4px;
+  top: 3.5px;
+  width: 2px;
+  height: 4px;
+  border-radius: 0 1px 1px 0;
+  background: rgb(255 255 255 / 0.45);
+}
+
+/* Обои чата — как на скриншоте владельца: почти чёрный фон с серым
+   узором-дудлами и едва заметным фиолетовым отливом. */
+.tg-chat {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(90% 45% at 30% 100%, rgb(70 48 110 / 0.28), transparent 70%),
+    radial-gradient(80% 40% at 90% 30%, rgb(60 44 90 / 0.18), transparent 70%),
+    #000;
+  transform-origin: 50% 0;
+  transition:
+    transform 560ms cubic-bezier(0.32, 0.72, 0, 1),
+    filter 560ms cubic-bezier(0.32, 0.72, 0, 1),
+    border-radius 560ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.tg-chat::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.13;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96' fill='none' stroke='%23bbb' stroke-width='1.6' stroke-linecap='round'%3E%3Ccircle cx='16' cy='18' r='6'/%3E%3Cpath d='M58 10l4 8 8 1-6 6 2 8-8-4-8 4 2-8-6-6 8-1z'/%3E%3Cpath d='M12 62h14M19 55v14'/%3E%3Crect x='52' y='56' width='20' height='14' rx='4'/%3E%3Cpath d='M84 40c4-6 10 0 4 6l-6 5-6-5c-6-6 0-12 4-6'/%3E%3Cpath d='M34 86q6-8 12 0t12 0'/%3E%3C/svg%3E");
+  background-size: 84px 84px;
+  pointer-events: none;
+}
+
+/* Мини-приложение открыто: чат за ним уходит вглубь, как лист в iOS. */
+.tg--sheet .tg-chat {
+  transform: translateY(10px) scale(0.94);
+  filter: brightness(0.35);
+  border-radius: 38px;
+}
+
+.tg-nav {
+  position: absolute;
+  z-index: 3;
+  top: 56px;
+  left: 14px;
+  right: 14px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tg-glass {
+  background: rgb(30 30 34 / 0.58);
+  -webkit-backdrop-filter: blur(14px) saturate(1.6);
+  backdrop-filter: blur(14px) saturate(1.6);
+  box-shadow:
+    inset 0 0.5px 0 rgb(255 255 255 / 0.28),
+    inset 0 0 0 0.5px rgb(255 255 255 / 0.12),
+    0 4px 14px rgb(0 0 0 / 0.25);
+}
+
+.tg-round {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+}
+
+.tg-back {
+  display: flex;
+  gap: 8px;
+  width: auto;
+  padding: 0 9px 0 14px;
+  border-radius: 22px;
+}
+
+/* Счётчик непрочитанных — светлая плашка с тёмными цифрами. */
+.tg-badge {
+  min-width: 26px;
+  height: 24px;
+  padding: 0 7px;
+  border-radius: 12px;
+  background: #e9e9ee;
+  color: #000;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 24px;
+  text-align: center;
+}
+
+.tg-title {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  height: 44px;
+  padding: 0 18px;
+  border-radius: 22px;
+}
+
+.tg-title b {
+  max-width: 196px;
+  overflow: hidden;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.tg-title small {
+  font-size: 13px;
+  line-height: 1.15;
+  color: rgb(255 255 255 / 0.55);
+}
+
+.tg-ava {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #0a0b0e;
+  box-shadow: inset 0 0 0 0.5px rgb(255 255 255 / 0.18);
+}
+
+.tg-ava img {
+  width: 100%;
+  height: 100%;
+}
+
+.tg-feed {
+  position: absolute;
+  top: 104px;
+  bottom: 94px;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 5px;
+  padding: 0 9px 8px;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 22px);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 22px);
+}
+
+.tg-date {
+  align-self: center;
+  margin: 4px 0 6px;
+  padding: 3px 10px;
+  border-radius: 12px;
+  background: rgb(0 0 0 / 0.32);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.tg-msg {
+  position: relative;
+  max-width: 300px;
+  padding: 7px 11px 8px 12px;
+  border-radius: 18px;
+  font-size: 17px;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  animation: tg-in 320ms cubic-bezier(0.2, 0.9, 0.25, 1) both;
+}
+
+.tg-msg b {
+  font-weight: 600;
+}
+
+.tg-msg--in {
+  align-self: flex-start;
+  border-bottom-left-radius: 6px;
+  /* Пузырь бота на скриншоте — тёмный с фиолетовым отливом книзу. */
+  background: linear-gradient(180deg, rgb(28 27 32 / 0.97), rgb(42 38 50 / 0.97));
+  transform-origin: 0 100%;
+}
+
+.tg-msg--out {
+  align-self: flex-end;
+  border-bottom-right-radius: 6px;
+  background: linear-gradient(170deg, #61bcf9, #0088ff);
+  transform-origin: 100% 100%;
+}
+
+/* Время внутри пузыря справа снизу; если места в строке нет — уходит на новую. */
+.tg-time {
+  position: relative;
+  top: 7px;
+  float: right;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 10px;
+  font-size: 12px;
+  line-height: 1;
+  color: rgb(255 255 255 / 0.45);
+}
+
+/* Фото над подписью: во всю ширину пузыря, углы сверху — как у пузыря. */
+.tg-msg--photo {
+  padding-top: 0;
+  overflow: hidden;
+}
+
+.tg-photo {
+  display: block;
+  width: calc(100% + 23px);
+  height: auto;
+  margin: 0 -11px 7px -12px;
+  aspect-ratio: 1;
+}
+
+.tg-msg--out .tg-time {
+  color: rgb(255 255 255 / 0.75);
+}
+
+.tg-group {
+  align-self: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 300px;
+  animation: tg-in 320ms cubic-bezier(0.2, 0.9, 0.25, 1) both;
+  transform-origin: 0 100%;
+}
+
+.tg-group .tg-msg {
+  max-width: none;
+  animation: none;
+}
+
+.tg-group__msg {
+  position: relative;
+  display: grid;
+}
+
+.tg-share {
+  position: absolute;
+  right: -42px;
+  bottom: 4px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgb(44 44 48 / 0.75);
+  box-shadow: inset 0 0.5px 0 rgb(255 255 255 / 0.2);
+}
+
+.tg-kb {
+  display: grid;
+  gap: 4px;
+}
+
+.tg-kb__row {
+  display: flex;
+  gap: 4px;
+}
+
+.tg-key {
+  position: relative;
+  flex: 1;
+  display: grid;
+  place-items: center;
+  height: 42px;
+  padding: 0 6px;
+  overflow: hidden;
+  border-radius: 13px;
+  background: rgb(40 39 45 / 0.92);
+  box-shadow: inset 0 0.5px 0 rgb(255 255 255 / 0.08);
+  font-size: 17px;
+  white-space: nowrap;
+}
+
+/* Значок «откроется мини-приложение» в углу кнопки. */
+.tg-key__app {
+  position: absolute;
+  top: 7px;
+  right: 8px;
+  width: 9px;
+  height: 8px;
+  border: 1.4px solid #fff;
+  border-top-width: 2.6px;
+  border-radius: 2px;
+}
+
+.tg-input {
+  position: absolute;
+  z-index: 3;
+  left: 14px;
+  right: 14px;
+  bottom: 40px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tg-field {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+  height: 44px;
+  padding: 0 12px 0 16px;
+  border-radius: 22px;
+  font-size: 17px;
+  color: rgb(255 255 255 / 0.42);
+}
+
+/* Кнопка меню бота — синяя, как в Telegram. */
+.tg-menu {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 16px 0 15px;
+  border-radius: 22px;
+  background: #3c7cf6;
+  font-size: 17px;
+  font-weight: 500;
+}
+
+.tg-home {
+  position: absolute;
+  z-index: 50;
+  left: 50%;
+  bottom: 8px;
+  width: 138px;
+  height: 5px;
+  margin-left: -69px;
+  border-radius: 3px;
+  background: #fff;
+}
+
+/* Нажатие: короткая вспышка поверх кнопки. */
+.tg-key.is-tap::after,
+.tma-btn2.is-tap::after,
+.tma-primary.is-tap::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: rgb(255 255 255 / 0.28);
+  animation: tg-tap 750ms ease-out both;
+}
+
+.tma-primary.is-tap,
+.tma-btn2.is-tap {
+  transform: scale(0.98);
+  transition: transform 100ms;
+}
+
+@keyframes tg-tap {
+  0% { opacity: 0; }
+  15% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes tg-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+  }
+}
+
+/* --- Мини-приложение (styles.css бота) ------------------------------------- */
+
+.tma-sheet {
+  position: absolute;
+  z-index: 8;
+  top: 56px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  border-radius: 38px 38px 0 0;
+  background: #0b0b0d;
+  color: #f4f5f7;
+  box-shadow: 0 -10px 30px rgb(0 0 0 / 0.45);
+  transform: translateY(102%);
+  transition: transform 560ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.tma-sheet.is-open {
+  transform: none;
+}
+
+.tma-grabber {
+  position: absolute;
+  z-index: 2;
+  top: 6px;
+  left: 50%;
+  width: 36px;
+  height: 5px;
+  margin-left: -18px;
+  border-radius: 3px;
+  background: rgb(255 255 255 / 0.28);
+}
+
+.tma-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+  padding: 6px 14px 0;
+}
+
+.tma-hbtn {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgb(78 78 84 / 0.6);
+  box-shadow:
+    inset 0 0.5px 0 rgb(255 255 255 / 0.3),
+    0 2px 8px rgb(0 0 0 / 0.3);
+}
+
+.tma-htitle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.tma-htitle b {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.tma-htitle small {
+  font-size: 13px;
+  color: rgb(255 255 255 / 0.5);
+}
+
+.tma-body {
+  position: absolute;
+  top: 64px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+.tma-view {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.tma-scroll {
+  padding: 16px 14px 40px;
+  font-size: 15px;
+  line-height: 1.45;
+  transition: transform 800ms cubic-bezier(0.45, 0, 0.2, 1);
+}
+
+.order.is-near .tma-scroll {
+  font-family: var(--font-inter), system-ui, sans-serif;
+}
+
+.tma-header {
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.tma-logo,
+.tma-card-title,
+.tma-primary,
+.tma-success-title,
+.tma-order-no {
+  font-family: 'Arial Narrow', system-ui, sans-serif;
+}
+
+.order.is-near .tma-logo,
+.order.is-near .tma-card-title,
+.order.is-near .tma-primary,
+.order.is-near .tma-success-title,
+.order.is-near .tma-order-no {
+  font-family: var(--font-oswald), 'Arial Narrow', system-ui, sans-serif;
+}
+
+.tma-logo {
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: linear-gradient(180deg, #ededed 0%, #b8bcc2 55%, #7e838b 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.tma-logo span {
+  -webkit-text-fill-color: #e11d25;
+}
+
+.tma-sub {
+  margin-top: 2px;
+  font-size: 13px;
+  color: #9ca0a8;
+}
+
+.tma-card {
+  margin-bottom: 12px;
+  padding: 16px 14px;
+  border: 1px solid #2a2c31;
+  border-radius: 13px;
+  background: #16171a;
+}
+
+.tma-card-title {
+  margin-bottom: 12px;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.45;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #b8bcc2;
+}
+
+.tma-card-hint {
+  margin: -6px 0 12px;
+  font-size: 13px;
+  color: #9ca0a8;
+}
+
+.tma-field {
+  display: block;
+  margin-bottom: 12px;
+}
+
+.tma-field:last-child {
+  margin-bottom: 0;
+}
+
+.tma-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #9ca0a8;
+}
+
+.tma-label em {
+  font-style: normal;
+  opacity: 0.7;
+}
+
+.tma-input {
+  display: block;
+  width: 100%;
+  min-height: 45px;
+  padding: 11px 12px;
+  border: 1px solid #2a2c31;
+  border-radius: 13px;
+  background: #1f2024;
+  color: rgb(156 160 168 / 0.6);
+  transition:
+    color 200ms,
+    border-color 200ms;
+}
+
+.tma-input.is-filled {
+  border-color: #7e838b;
+  color: #f4f5f7;
+}
+
+.tma-area {
+  min-height: 68px;
+}
+
+.tma-row {
+  display: flex;
+  gap: 8px;
+}
+
+.tma-row .tma-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.tma-btn2 {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  overflow: hidden;
+  padding: 10px 12px;
+  border: 1px solid #2a2c31;
+  border-radius: 13px;
+  background: #1f2024;
+  color: #b8bcc2;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.tma-geo {
+  margin: 0 0 10px;
+}
+
+.tma-hint {
+  display: block;
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: #9ca0a8;
+}
+
+.tma-confirm {
+  display: block;
+  margin-top: 8px;
+  padding: 11px 12px;
+  border: 1px solid #e11d25;
+  border-radius: 13px;
+  background: #1f2024;
+  color: #ff8a8f;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center;
+  transition: all 150ms;
+}
+
+.tma-confirm.is-ok {
+  border-color: #2e7d46;
+  color: #4caf6d;
+}
+
+.tma-map {
+  position: relative;
+  display: block;
+  height: 240px;
+  margin-bottom: 8px;
+  overflow: hidden;
+  border: 1px solid #2a2c31;
+  border-radius: 13px;
+  background: #1f2024;
+}
+
+.tma-map svg {
+  display: block;
+  filter: brightness(0.72) contrast(1.06) saturate(0.55);
+}
+
+.tma-osm {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  padding: 1px 5px;
+  background: rgb(11 11 13 / 0.7);
+  font-size: 10px;
+  color: #9ca0a8;
+}
+
+.tma-pin {
+  position: absolute;
+  left: 44%;
+  top: 36%;
+  width: 32px;
+  height: 32px;
+  animation: tma-drop 240ms ease-out both;
+}
+
+.tma-pin span {
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  width: 26px;
+  height: 26px;
+  border: 2px solid #fff;
+  border-radius: 50% 50% 50% 0;
+  background: #e11d25;
+  transform: rotate(-45deg);
+  box-shadow: -1px 2px 6px rgb(0 0 0 / 0.5);
+}
+
+.tma-pin span::after {
+  content: '';
+  position: absolute;
+  inset: 7px;
+  border-radius: 50%;
+  background: #fff;
+}
+
+@keyframes tma-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+}
+
+.tma-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tma-chips span {
+  display: inline-block;
+  padding: 8px 14px;
+  border: 1px solid #2a2c31;
+  border-radius: 999px;
+  background: #1f2024;
+  color: #9ca0a8;
+  font-size: 14px;
+  transition: all 150ms;
+}
+
+.tma-chips span.is-on,
+.tma-seg span.is-on {
+  border-color: #e11d25;
+  background: #e11d25;
+  color: #fff;
+  font-weight: 500;
+}
+
+.tma-seg {
+  display: flex;
+  overflow: hidden;
+  border: 1px solid #2a2c31;
+  border-radius: 13px;
+  background: #1f2024;
+}
+
+.tma-seg span {
+  flex: 1;
+  padding: 10px 6px;
+  border-right: 1px solid #2a2c31;
+  color: #9ca0a8;
+  font-size: 14px;
+  text-align: center;
+  transition: all 150ms;
+}
+
+.tma-seg span:last-child {
+  border-right: none;
+}
+
+.tma-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 12px;
+  font-size: 13px;
+  color: #9ca0a8;
+}
+
+.tma-consent u {
+  color: #b8bcc2;
+}
+
+.tma-check {
+  position: relative;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  border: 1.5px solid #7e838b;
+  border-radius: 4px;
+  background: #1f2024;
+  transition: all 150ms;
+}
+
+.tma-check.is-on {
+  border-color: #e11d25;
+  background: #e11d25;
+}
+
+.tma-check.is-on::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 1.5px;
+  width: 5px;
+  height: 9px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.tma-primary {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  padding: 15px;
+  border-radius: 13px;
+  background: #e11d25;
+  color: #fff;
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.tma-footer {
+  margin-top: 18px;
+  font-size: 12px;
+  text-align: center;
+  color: #9ca0a8;
+  opacity: 0.7;
+}
+
+.tma-success {
+  padding: 32px 20px;
+  text-align: center;
+  animation: tma-pop 260ms ease-out both;
+}
+
+.tma-success-icon {
+  margin-bottom: 10px;
+  font-size: 44px;
+  line-height: 1.2;
+}
+
+.tma-success-title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #ededed;
+}
+
+.tma-order-no {
+  margin: 10px 0;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #e11d25;
+}
+
+.tma-success-text {
+  margin-bottom: 20px;
+  font-size: 14px;
+  color: #9ca0a8;
+}
+
+@keyframes tma-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(6px);
+  }
+}
+
+/* Без анимации: всё сразу в конечном виде. */
+@media (prefers-reduced-motion: reduce) {
+  .tg *,
+  .tg *::after,
+  .order-cap__body,
+  .order-dashes__fill {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .tg-chat {
+    transition: none;
+  }
+}

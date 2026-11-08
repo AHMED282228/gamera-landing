@@ -1,0 +1,381 @@
+/* ==========================================================================
+   Зона выезда: карта, поле «Где стоит машина?», колонки городов.
+   ========================================================================== */
+
+.cov {
+  display: grid;
+  gap: var(--spacing-block);
+}
+
+@media (min-width: 1024px) {
+  .cov {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    align-items: center;
+    gap: clamp(2rem, 5vw, 5rem);
+  }
+}
+
+.cov-search {
+  max-width: 28rem;
+  margin-top: 2rem;
+}
+
+.cov-search__label {
+  display: block;
+  margin-bottom: 0.6rem;
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+  font-weight: 700;
+}
+
+/* 17 px и больше: на iPhone поле мельче 16 px увеличивает страницу. */
+.cov-search__input {
+  width: 100%;
+  height: 3.5rem;
+  padding: 0 1.1rem;
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-raise);
+  color: var(--color-ink);
+  font: inherit;
+  font-size: 1.0625rem;
+  transition: border-color 200ms var(--ease-out-quart);
+}
+
+.cov-search__input::placeholder {
+  color: var(--color-ink-3);
+}
+
+.cov-search__input:hover {
+  border-color: #4a505a;
+}
+
+.cov-search__input:focus-visible {
+  outline: 2px solid var(--color-amber);
+  outline-offset: 2px;
+  border-color: var(--color-amber);
+}
+
+.cov-search__res {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  min-height: 3.25rem;
+  margin-top: 0.9rem;
+  color: var(--color-ink-2);
+}
+
+.cov-search__res p {
+  margin: 0;
+  animation: cov-in 320ms var(--ease-out-expo) both;
+}
+
+.cov-search__res b {
+  color: var(--color-ink);
+}
+
+.cov-ok {
+  display: inline-block;
+  width: 0.55rem;
+  height: 0.55rem;
+  margin-right: 0.5rem;
+  border-radius: 50%;
+  background: var(--color-amber);
+  box-shadow: 0 0 10px rgb(255 178 30 / 0.7);
+  vertical-align: 0.08em;
+}
+
+.cov-link {
+  color: var(--color-ink);
+  text-decoration: underline;
+  text-decoration-color: var(--color-line-strong);
+  text-underline-offset: 4px;
+}
+
+.cov-link:hover {
+  text-decoration-color: var(--color-amber);
+}
+
+@keyframes cov-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* --- Карта ---------------------------------------------------------------- */
+
+.cov-map {
+  position: relative;
+  margin: 0;
+  aspect-ratio: 1000 / 730;
+}
+
+.cov-map__svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  /* Соседние области обрезаны рамкой карты — края растворяются в фоне,
+     чтобы карта не читалась прямоугольником. */
+  -webkit-mask-image:
+    linear-gradient(to right, transparent, #000 7%, #000 93%, transparent),
+    linear-gradient(to bottom, transparent, #000 7%, #000 93%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(to right, transparent, #000 7%, #000 93%, transparent),
+    linear-gradient(to bottom, transparent, #000 7%, #000 93%, transparent);
+  mask-composite: intersect;
+}
+
+.cov-near {
+  fill: #0f1116;
+  stroke: #1f232a;
+  stroke-width: 1;
+  stroke-linejoin: round;
+}
+
+.cov-lo {
+  fill: #161920;
+  stroke: #5a616c;
+  stroke-width: 1.3;
+  stroke-linejoin: round;
+}
+
+.cov-glow {
+  pointer-events: none;
+}
+
+.cov-spb {
+  fill: rgb(225 29 37 / 0.22);
+  stroke: var(--color-red);
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+}
+
+.cov-water {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-display);
+  font-size: clamp(0.625rem, 0.5rem + 0.4vw, 0.875rem);
+  font-weight: 300;
+  font-variation-settings: 'slnt' -11;
+  line-height: 1.15;
+  letter-spacing: 0.04em;
+  text-align: center;
+  white-space: nowrap;
+  color: rgb(141 148 158 / 0.75);
+  pointer-events: none;
+}
+
+.cov-hub,
+.cov-city {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
+.cov-hub__dot {
+  position: absolute;
+  left: -7px;
+  top: -7px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--color-red);
+  box-shadow:
+    0 0 0 4px rgb(225 29 37 / 0.25),
+    0 0 24px rgb(225 29 37 / 0.75);
+}
+
+/* Волна от Петербурга — свет расходится по области. */
+.cov-hub__dot::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  border: 1.5px solid rgb(225 29 37 / 0.8);
+  animation: cov-pulse 2.6s var(--ease-out-quart) infinite;
+}
+
+@keyframes cov-pulse {
+  from {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(4.5);
+  }
+}
+
+.cov-hub__label {
+  position: absolute;
+  left: 12px;
+  top: -28px;
+  font-family: var(--font-display);
+  font-size: clamp(0.8125rem, 0.68rem + 0.4vw, 1.0625rem);
+  font-weight: 800;
+  white-space: nowrap;
+  color: var(--color-ink);
+  text-shadow:
+    0 0 6px var(--color-bg),
+    0 0 14px var(--color-bg);
+}
+
+/* Невидимая зона попадания вокруг точки — по маленькой точке мышью не попасть. */
+.cov-city::before {
+  content: '';
+  position: absolute;
+  left: -14px;
+  top: -14px;
+  width: 28px;
+  height: 28px;
+}
+
+.cov-city__dot {
+  position: absolute;
+  left: -4px;
+  top: -4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-amber);
+  box-shadow: 0 0 10px rgb(255 178 30 / 0.6);
+  transition:
+    transform 250ms var(--ease-out-quart),
+    box-shadow 250ms var(--ease-out-quart);
+}
+
+.cov-city--big .cov-city__dot {
+  left: -5px;
+  top: -5px;
+  width: 10px;
+  height: 10px;
+}
+
+.cov-city__label {
+  position: absolute;
+  left: 11px;
+  top: -10px;
+  font-size: clamp(0.6875rem, 0.6rem + 0.3vw, 0.875rem);
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--color-ink-2);
+  text-shadow:
+    0 0 4px var(--color-bg),
+    0 0 10px var(--color-bg);
+  opacity: 0;
+  transform: translateY(3px);
+  transition:
+    opacity 200ms var(--ease-out-quart),
+    transform 200ms var(--ease-out-quart);
+  pointer-events: none;
+}
+
+.cov-city--big .cov-city__label {
+  opacity: 1;
+  transform: none;
+}
+
+/* Подпись слева от точки — там, где справа тесно. */
+.cov-city--left .cov-city__label {
+  left: auto;
+  right: 11px;
+}
+
+.cov-city.is-lit {
+  z-index: 2;
+}
+
+.cov-city.is-lit .cov-city__label {
+  opacity: 1;
+  transform: none;
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.cov-city.is-lit .cov-city__dot {
+  transform: scale(1.6);
+  box-shadow:
+    0 0 0 4px rgb(255 178 30 / 0.2),
+    0 0 18px rgb(255 178 30 / 0.95);
+}
+
+/* Появление: свет расходится от Петербурга, огоньки загораются по удалённости. */
+@media (prefers-reduced-motion: no-preference) {
+  html.js .cov-map.reveal .cov-glow {
+    opacity: 0;
+    transition: opacity 1800ms var(--ease-out-quart) 200ms;
+  }
+
+  html.js .cov-map.reveal .cov-city__dot,
+  html.js .cov-map.reveal .cov-city--big .cov-city__label {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+
+  html.js .cov-map.reveal.is-in .cov-glow {
+    opacity: 1;
+  }
+
+  html.js .cov-map.reveal.is-in .cov-city__dot {
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity 500ms var(--ease-out-quart) var(--d),
+      transform 600ms var(--ease-out-expo) var(--d),
+      box-shadow 250ms var(--ease-out-quart);
+  }
+
+  html.js .cov-map.reveal.is-in .cov-city--big .cov-city__label {
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity 500ms var(--ease-out-quart) calc(var(--d) + 150ms),
+      transform 500ms var(--ease-out-quart) calc(var(--d) + 150ms);
+  }
+
+  html.js .cov-map.reveal.is-in .cov-city.is-lit .cov-city__dot {
+    transform: scale(1.6);
+    transition-delay: 0ms;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cov-hub__dot::after {
+    animation: none;
+  }
+}
+
+/* --- Колонки городов ------------------------------------------------------ */
+
+.cov-cols {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.75rem 1.5rem;
+  margin-top: var(--spacing-block);
+  padding-top: 1.75rem;
+  border-top: 1px solid var(--color-line);
+}
+
+@media (min-width: 768px) {
+  .cov-cols {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.cov-col h3 {
+  margin-bottom: 0.75rem;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.cov-col ul {
+  display: grid;
+  gap: 0.35rem;
+  color: var(--color-ink-2);
+}

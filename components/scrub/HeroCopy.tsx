@@ -3,60 +3,60 @@
 import { motion, useTransform, type MotionValue } from 'motion/react'
 import type { CSSProperties } from 'react'
 
-import { REGION } from '@/lib/config'
+import { SUBSCRIBER_DISCOUNT, TG_CHANNEL } from '@/lib/config'
+import { HERO as COPY, LOADING } from '@/lib/content'
 import { HERO, HERO_ANCHOR } from '@/lib/scrubTimeline'
 import { BotButton, CallButton } from '@/components/ui/ActionButtons'
 
 /**
- * Первый экран уходит рано и полностью: поле у него общее с подписями, и любое
- * пересечение видно как наложение двух текстов. Границы — в lib/scrubTimeline.
+ * Первый экран: что это, где работают, и сразу два способа вызвать.
+ * С первым движением колеса уходит вверх и уступает место подписям этапов.
  */
-export function HeroCopy({ progress }: { progress: MotionValue<number> }) {
+export function HeroCopy({ progress, chapter = false }: { progress: MotionValue<number>; chapter?: boolean }) {
   const opacity = useTransform(progress, [HERO.from, HERO.to], [1, 0])
-  const y = useTransform(progress, [HERO.from, HERO.to], [0, -24], {
-    clamp: true,
-  })
-  // Растворившийся первый экран не должен перехватывать клики по кнопкам:
-  // он всё ещё лежит поверх поля, просто прозрачный.
-  const pointerEvents = useTransform(progress, (p) =>
-    p >= HERO.to ? 'none' : 'auto',
-  )
+  const y = useTransform(progress, [HERO.from, HERO.to], [0, -24], { clamp: true })
+  const pointerEvents = useTransform(progress, (p) => (p >= HERO.to ? 'none' : 'auto'))
 
   return (
     <motion.div
       className="hero-copy"
-      style={
-        {
-          opacity,
-          y,
-          pointerEvents,
-          '--anchor': HERO_ANCHOR,
-        } as unknown as CSSProperties
-      }
+      style={{ opacity, y, pointerEvents, '--anchor': HERO_ANCHOR } as unknown as CSSProperties}
     >
-      <p className="eyebrow">Круглосуточно, без выходных</p>
-
-      <h1 className="mt-4 font-display text-hero tracking-[-0.015em] text-ink">
-        Эвакуатор 24/7
+      {chapter ? (
+        <>
+          <h2 className="text-hero text-ink">
+            {LOADING.title}
+            <span className="line-accent mt-1">{LOADING.accent}</span>
+          </h2>
+          <p className="prose-measure mt-6 text-lead text-ink-2">{LOADING.lead}</p>
+        </>
+      ) : (
+      <>
+      <h1 className="text-hero text-ink">
+        {COPY.title}
+        <span className="line-accent mt-1">{COPY.accent}</span>
       </h1>
 
-      {/*
-        Платформа не опускается: из-под неё выдвигаются аппарели. Формулировка
-        из брифа обещала обратное — исправлено по уточнению владельца.
-      */}
-      <p className="prose-measure mt-5 text-lead text-steel-2">
-        Аппарели выдвигаются из-под платформы и ложатся на асфальт: низкий угол
-        заезда, машина заходит без рывков и без риска задеть бампер.
-      </p>
+      <p className="prose-measure mt-6 text-lead text-ink-2">{COPY.lead}</p>
 
       <div className="mt-8 flex flex-wrap gap-3">
-        <CallButton />
         <BotButton />
+        <CallButton withNumber />
       </div>
 
-      {/* Было --steel-1: 3.54 к фону при требуемых для текста 4.5.
-          Он остаётся цветом разделителей и рамок, а не подписей. */}
-      <p className="mt-5 text-label text-steel-2">{REGION}</p>
+      <p className="hero-note">
+        <span>
+          <span className="live-dot" aria-hidden="true" />
+          <b>Круглосуточно</b>, без выходных
+        </span>
+        {SUBSCRIBER_DISCOUNT > 0 && (
+          <a href={TG_CHANNEL} target="_blank" rel="noopener" className="underline decoration-line-strong underline-offset-4 hover:decoration-amber">
+            −{SUBSCRIBER_DISCOUNT} ₽ подписчикам канала
+          </a>
+        )}
+      </p>
+      </>
+      )}
     </motion.div>
   )
 }

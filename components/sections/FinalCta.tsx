@@ -1,52 +1,27 @@
 import { PHONE_DISPLAY, PHONE_HREF, REGION } from '@/lib/config'
-import { BotButton, CallButton } from '@/components/ui/ActionButtons'
+import { FINAL } from '@/lib/content'
+import { BotButton } from '@/components/ui/ActionButtons'
+import { SaveShare } from '@/components/ui/SaveShare'
 
 /**
- * Финальный блок. Сюда доходит тот, кто уже сравнил и решил, — значит здесь
- * должно быть ровно одно действие и ни одного нового вопроса.
- *
- * Номер набран крупно и сам является ссылкой tel:. На телефоне это нажатие,
- * на десктопе — то, что переписывают в трубку, поэтому цифры разрежены: слитный
- * номер глазами не разбирается.
+ * Финал — единственное залитое красным поле на странице: здесь человек
+ * решает. Огромный номер — сама кнопка звонка.
  */
 export function FinalCta() {
   return (
-    <section id="call" className="shell py-section">
-      <div className="reveal border-t-2 border-red pt-block">
-        <p className="eyebrow">Круглосуточно, без выходных</p>
-
-        {/*
-          Размер у номера свой, а не общий --text-hero.
-          Номер нельзя переносить по строкам, поэтому его ширина жёстко следует
-          за кеглем, а кегль общей шкалы на узких экранах упирается в нижнюю
-          границу 2.75rem и перестаёт уменьшаться. На 390px строка вставала
-          впритык к полям, на 360px уже вылезала за них и обрезалась. Здесь
-          кегль до самого низа тянется за шириной окна, поэтому номер помещается
-          на любом телефоне, оставаясь самым крупным на экране.
-        */}
-        <a
-          href={PHONE_HREF}
-          className="mt-5 block font-display text-[clamp(2.25rem,11.5vw,4.75rem)] leading-[0.95] tracking-[0.01em] text-ink transition-tint duration-200 hover:text-white"
-        >
-          <span className="whitespace-nowrap">{PHONE_DISPLAY}</span>
+    <section id="call" aria-labelledby="call-title" className="final">
+      <div className="final__inner shell">
+        <h2 id="call-title" className="final__title h-light">
+          {FINAL.title}
+          <span className="line-accent mt-1">{FINAL.accent}</span>
+        </h2>
+        <a href={PHONE_HREF} className="final__phone" aria-label={`Позвонить: ${PHONE_DISPLAY}`}>
+          {PHONE_DISPLAY}
         </a>
-
-        <div className="mt-8 flex flex-wrap items-center gap-4">
-          {/*
-            Обе кнопки, и красная первой.
-
-            Пока юзернейма бота не было, здесь стояло «или бот, или звонок», и с
-            появлением бота красная кнопка из блока молча исчезла: осталась одна
-            обведённая. То есть на самом решительном экране страницы — том, до
-            которого дочитывают уже согласные, — не было ни одного заметного
-            действия. Номер над кнопками кликабелен, но выглядит текстом.
-
-            Порядок не случаен: звонок — главный путь по брифу, бот — для тех,
-            кому в три часа ночи проще написать, чем говорить.
-          */}
-          <CallButton />
-          <BotButton />
-          <p className="text-label text-steel-2">{REGION}</p>
+        <p className="final__meta">Круглосуточно, без выходных · {REGION}</p>
+        <div className="mt-8 flex flex-wrap items-center gap-x-8 gap-y-4">
+          <BotButton tone="red" />
+          <SaveShare className="save-share" />
         </div>
       </div>
     </section>

@@ -59,7 +59,7 @@ const run = async () => {
   await page.mouse.wheel(0, 10)
   await page.waitForFunction(
     () => {
-      const v = document.querySelector('.scrub-stage-media video')
+      const v = document.querySelector('.scrub-stage-media video:not([loop])')
       return v && v.readyState >= 2
     },
     null,

@@ -83,8 +83,10 @@ const run = async () => {
      * кнопке она была белой, на телефоне серебристой. Замер с задержкой этого
      * не увидел бы — к его моменту цвет уже доехал.
      */
-    const AMBER = 'rgb(255, 163, 26)'
-    const wrongColor = stops.filter((s) => s.outlineColor !== AMBER)
+    const AMBER = 'rgb(255, 178, 30)'
+    /* На красном финальном блоке рамка белая: янтарь на красном не виден. */
+    const WHITE = 'rgb(255, 255, 255)'
+    const wrongColor = stops.filter((s) => s.outlineColor !== AMBER && s.outlineColor !== WHITE)
     ok(wrongColor.length === 0, 'рамка янтарная сразу, без перехода',
       wrongColor.map((s) => `${s.outlineColor} у «${s.text}»`).join(', '))
 
