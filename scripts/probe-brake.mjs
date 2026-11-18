@@ -9,7 +9,7 @@
  *                (верхний слой от 15 до 85%) — это и есть «смаз» на дворниках;
  *   смены      — промежутки между последними сменами кадра, мс (ритм торможения).
  *
- *   node scripts/probe-brake.mjs [--url http://localhost:4321]
+ *   node scripts/probe-brake.mjs [--url http://localhost:4321] [--fps 24]
  */
 import { chromium } from 'playwright'
 
@@ -19,7 +19,7 @@ const arg = (n, d) => {
   return i === -1 ? d : args[i + 1]
 }
 const URL_ = arg('url', 'http://localhost:4321')
-const FPS = 24
+const FPS = Number(arg('fps', 24))
 
 const browser = await chromium.launch({ channel: 'chrome' })
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })

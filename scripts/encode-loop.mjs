@@ -7,9 +7,13 @@
  * кадра ровно ноль, и круги ложатся встык. Тот же файл без MediaSource играет и
  * обычным адресом — запасной путь для старых iPhone.
  *
- * Профиль High. В gaplessLoop.ts объявлен уровень 4.0 (avc1.640028): круг 21:9
- * шириной 1672 в 3.1 не помещается. Остальные размеры — 3.1, объявленный уровень
- * их покрывает.
+ * Профиль High. В gaplessLoop.ts объявлен уровень 4.2 (avc1.64002a): круг 21:9
+ * шириной 1672 при 60 к/с в 4.0 не помещается. Узкий 21:9 — 3.2, остальные — 3.1,
+ * объявленный уровень их покрывает.
+ *
+ * С 14 ноября 2026 круг 21:9 — 60 к/с, из папки VideoWeb:
+ *   node ../VideoWeb-new/scripts/encode-loop.mjs assets/bmw/klip/60k/loop21-v8-cas35-60.mkv --wide
+ * (см. ../VideoWeb/assets/bmw/analiz/60k/README.txt).
  *
  *   node scripts/encode-loop.mjs assets/bmw/klip/noch-loop-v5b-24.mkv
  *   node scripts/encode-loop.mjs КРУГ-21x9.mkv --wide   (кадр 21:9, lib/config.ts → WIDE_SHOT)
@@ -45,8 +49,8 @@ const CALM = 'psy=0:mbtree=0'
  */
 const OUT = process.argv.includes('--wide')
   ? [
-      { file: 'public/media/loop21_1672.mp4', vf: 'scale=1672:720:flags=lanczos', crf: 17, preset: 'veryslow', level: '4.0', x264: 'mbtree=0' },
-      { file: 'public/media/loop21_1114.mp4', vf: 'scale=1114:480:flags=lanczos', crf: 19, level: '3.1', x264: CALM },
+      { file: 'public/media/loop21_1672.mp4', vf: 'scale=1672:720:flags=lanczos', crf: 17, preset: 'veryslow', level: '4.2', x264: 'mbtree=0' },
+      { file: 'public/media/loop21_1114.mp4', vf: 'scale=1114:480:flags=lanczos', crf: 19, level: '3.2', x264: CALM },
     ]
   : [
       { file: 'public/media/loop_1280.mp4', vf: 'scale=1280:720:flags=lanczos', crf: 21, level: '3.1', x264: CALM },

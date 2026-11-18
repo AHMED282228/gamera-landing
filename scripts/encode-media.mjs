@@ -18,7 +18,9 @@
  * Ночная основа BMW (24 к/с): --src assets/bmw/klip/itog-noch-10s.mp4 --keyint 8
  *
  * Кадр 21:9 (lib/config.ts → WIDE_SHOT): node scripts/encode-media.mjs --wide
- * Берёт assets/bmw/klip/noch-scrub21-v9g.mp4, пишет load21_1672 и load21_1114.
+ * Берёт assets/bmw/klip/60k/scrub21-v9g-cas35-60.mkv (с 14 ноября 2026 — резкость + 60 к/с,
+ * опорный кадр каждый 12-й = 0,2 с; прежний 24 к/с — --src assets/bmw/klip/noch-scrub21-v9g.mp4
+ * --keyint 8), пишет load21_1672 и load21_1114.
  * Постеры 21:9 в этом режиме не трогаются: они уже вырезаны из первого кадра
  * того же исходника и от сжатия клипа не зависят.
  */
@@ -34,7 +36,7 @@ const arg = (n, d) => {
 const DRY = args.includes('--dry')
 const WIDE = args.includes('--wide')
 
-const SRC = arg('src', WIDE ? 'assets/bmw/klip/noch-scrub21-v9g.mp4' : 'assets/OriginalKlip.mp4')
+const SRC = arg('src', WIDE ? 'assets/bmw/klip/60k/scrub21-v9g-cas35-60.mkv' : 'assets/OriginalKlip.mp4')
 const OUT = 'public/media'
 
 /**
@@ -55,7 +57,9 @@ const OUT = 'public/media'
  * прежний клип 24 к/с (2,99 МБ), хотя кадров вдвое больше: лишние кадры
  * оказываются дешёвыми, а экономия на опорных их перекрывает.
  */
-const KEYINT = Number(arg('keyint', WIDE ? 8 : 16))
+// 21:9 при 60 к/с — каждый 12-й (0,2 с): перемотка 12/17 мс против 10/14 у 24 к/с с каждым 8-м,
+// 7,4 МБ; каждый 8-й — 8,8 МБ, каждый 20-й — 6,5 МБ и 16/21 мс (../VideoWeb/assets/bmw/analiz/60k/).
+const KEYINT = Number(arg('keyint', WIDE ? 12 : 16))
 
 /**
  * Тира два, как и просит бриф. Тир 1920 не заводим намеренно: кадр на странице
