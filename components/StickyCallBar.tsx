@@ -44,8 +44,8 @@ export function StickyCallBar() {
       <div ref={markRef} className="sticky-bar-mark" aria-hidden="true" />
       <div className="sticky-bar" data-shown={shown ? '' : undefined}>
         <div className="flex gap-2">
-          <BotButton className="flex-1" />
-          <CallButton className="flex-1" compact />
+          <BotButton className="flex-auto" />
+          <CallButton className="flex-auto" compact />
         </div>
       </div>
     </>

@@ -6,7 +6,7 @@ import { motion, useReducedMotion, useScroll, useTransform, type MotionValue } f
 import { AMBIENT, AMBIENT_WIDE } from '@/lib/ambient'
 import { LOOP, MEDIA, POSTER, POSTER_ALT, SHOT_SIZE, WIDE_SHOT } from '@/lib/config'
 import { attachLoop } from '@/lib/gaplessLoop'
-import { onHeroLoopDone } from '@/lib/heroLoopDone'
+import { onHeroLoopDoneIfFast } from '@/lib/heroLoopDone'
 import { CAPTIONS } from '@/lib/scrubTimeline'
 import { useSmoothProgress } from '@/lib/useSmoothProgress'
 import { useVideoScrub } from '@/lib/useVideoScrub'
@@ -93,7 +93,7 @@ export function ScrubStage({ chapter = false }: { chapter?: boolean } = {}) {
     onFrameCount: handleFrames,
     // Глава ниже первого экрана: клип ждёт петлю первого экрана или подхода к окну.
     attachWhenNear: chapter,
-    attachEarly: chapter ? onHeroLoopDone : undefined,
+    attachEarly: chapter ? onHeroLoopDoneIfFast : undefined,
   })
 
   /*
@@ -151,7 +151,7 @@ export function ScrubStage({ chapter = false }: { chapter?: boolean } = {}) {
       }
       near = new IntersectionObserver(([e]) => e.isIntersecting && go(), { rootMargin: '150% 0px' })
       near.observe(section)
-      dropEarly = onHeroLoopDone(go)
+      dropEarly = onHeroLoopDoneIfFast(go)
     } else if (document.readyState === 'complete') attach()
     else window.addEventListener('load', attach, { once: true })
 

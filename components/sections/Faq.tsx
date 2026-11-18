@@ -1,10 +1,12 @@
 import { PHONE_DISPLAY, PHONE_HREF, SUBSCRIBER_DISCOUNT } from '@/lib/config'
 import { FAQ, FAQ_HEAD } from '@/lib/content'
 import { SectionHead } from '@/components/ui/SectionHead'
+import { FaqItem } from '@/components/sections/FaqItem'
 
 /**
  * Частые вопросы — нативные details/summary: работают без JS, с клавиатуры и
- * в поиске (разметка FAQPage — lib/jsonld.ts берёт тот же список).
+ * в поиске (разметка FAQPage — lib/jsonld.ts берёт тот же список). Плавное
+ * раскрытие — FaqItem.
  */
 export function faqItems() {
   const items: { q: string; a: string }[] = FAQ.map((f) => ({ q: f.q, a: f.a }))
@@ -33,13 +35,7 @@ export function Faq() {
         </div>
         <div className="faq-list">
           {items.map((f, i) => (
-            <details key={f.q} className="faq-item" open={i === 0 ? true : undefined}>
-              <summary>
-                {f.q}
-                <span className="faq-plus" aria-hidden="true" />
-              </summary>
-              <p className="faq-answer">{f.a}</p>
-            </details>
+            <FaqItem key={f.q} q={f.q} a={f.a} open={i === 0 ? true : undefined} />
           ))}
         </div>
       </div>
