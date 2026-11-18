@@ -48,7 +48,7 @@ export function CallPhotos() {
         {SUBSCRIBER_DISCOUNT > 0 && (
           <p className="discount">
             <strong>−{SUBSCRIBER_DISCOUNT} ₽</strong>
-            <span>скидка подписчикам канала. Условия — в канале.</span>
+            <span>скидка подписчикам канала.</span>
           </p>
         )}
       </div>
