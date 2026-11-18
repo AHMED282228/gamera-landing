@@ -157,10 +157,13 @@ export const MEDIA = {
   /**
    * Частота кадров клипа промотки. По ней промотка останавливается ровно на
    * целом кадре и растворяет соседние кадры друг в друга на медленном ходу
-   * (lib/useVideoScrub.ts). Сменили клип — проверьте частоту: 221 кадр на
-   * 9,21 с — это 24 к/с.
+   * (lib/useVideoScrub.ts). Сменили клип — проверьте частоту.
+   *
+   * 14 ноября 2026: промотка и петля — «резкость + 60 к/с» (лёгкая резкость cas 0.35, кадры
+   * между настоящими досчитал RIFE 4.6): 551 кадр на 9,18 с. Сборка и замеры —
+   * ../VideoWeb/assets/bmw/analiz/60k/README.txt, откат на 24 к/с — sravnenie/do-60k/README.txt.
    */
-  fps: 24,
+  fps: 60,
 } as const
 
 /**
@@ -273,4 +276,54 @@ export const UNLOAD_POSTER_ALT =
 export const LOGO = {
   mark: { src: asset('/brand/logo-mark.webp'), width: 160, height: 138 },
   full: { src: asset('/brand/logo-full.webp'), width: 400, height: 287 },
+} as const
+
+/**
+ * Аватар и фото приветствия бота в демонстрации заказа (iPhone в блоке «Заявка»).
+ * Раньше пути были строками прямо в TgDemo, мимо asset(): локально всё видно,
+ * а на витрине GitHub Pages (подкаталог) обе картинки отдавали 404 —
+ * замечание владельца 15 ноября 2026 «не отображается эмблема».
+ */
+export const BOT_IMAGES = {
+  avatar: asset('/brand/bot-avatar.webp'),
+  hello: asset('/brand/bot-hello.webp'),
+} as const
+
+/**
+ * Настоящая карта в форме демонстрации (scripts/make-demo-map.py): снимки
+ * масштабов from…from+N−1 (9 — весь город, как бот открывает карту; 16 —
+ * точка вызова, как после «Определить местоположение»), точка у всех ровно в
+ * центре. По ним карта плавно приближается, как при щипке пальцами.
+ * null — снимков нет, в форме схема.
+ */
+export const DEMO_MAP: { from: number; levels: string[] } | null = {
+  from: 9,
+  levels: [9, 10, 11, 12, 13, 14, 15, 16].map((z) => asset(`/photos/demo-map-z${z}.webp`)),
+}
+
+/**
+ * Обзор эвакуатора (components/sections/Truck.tsx). Сборка — scripts/make-tour.mjs.
+ * a / b / c — кадры 4K из съёмки владельца (3840 × 2160, у всех одна пропорция):
+ * a — сбоку, b — сзади с пустой платформой, c — сзади с машиной на платформе.
+ * remen — фото с вызова; apparely — 4,3 с съёмки: колесо идёт по аппарели;
+ * lebedka — лебёдка крупно из той же съёмки (scripts/make-lebedka.py).
+ */
+const tourShot = (n: string) => ({
+  src: asset(`/photos/tour-${n}-2752.webp`),
+  srcSet: `${asset(`/photos/tour-${n}-1600.webp`)} 1600w, ${asset(`/photos/tour-${n}-2752.webp`)} 2752w`,
+})
+export const TOUR_MEDIA = {
+  a: tourShot('a'),
+  b: tourShot('b'),
+  c: tourShot('c'),
+  ratio: 16 / 9,
+  remen: asset('/photos/tour-remen.webp'),
+  lebedka: asset('/photos/tour-lebedka.webp'),
+  // Посты 10 и 17 канала: вырез 4:3, увеличение Lanczos (оригиналов крупнее нет).
+  upory: asset('/photos/tour-upory.webp'),
+  // Ремни через колёса — слои поверх кадра c (lib/tourParts.ts, StrapImg).
+  strapRear: asset('/photos/tour-strap-rear.webp'),
+  strapFront: asset('/photos/tour-strap-front.webp'),
+  apparely: asset('/photos/tour-apparely.mp4'),
+  apparelyPoster: asset('/photos/tour-apparely.webp'),
 } as const

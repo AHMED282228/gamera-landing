@@ -16,14 +16,30 @@ export const DIRS: { id: Dir; title: string }[] = [
   { id: 'west', title: 'Запад' },
 ]
 
-export type City = { name: string; lon: number; lat: number; dir: Dir; big?: boolean; left?: boolean }
+/**
+ * big — крупный город, подпись видна всегда; left — подпись слева от точки
+ * (справа тесно); inner — часть самого Петербурга (Курортный, Петродворцовый,
+ * Пушкинский, Колпинский, Кронштадтский районы): огонёк мельче, чтобы город
+ * на карте не сливался в одно жёлтое пятно.
+ */
+export type City = {
+  name: string
+  lon: number
+  lat: number
+  dir: Dir
+  big?: boolean
+  left?: boolean
+  inner?: boolean
+  /** На узком экране подпись под точкой: справа тесно, слева край карты. */
+  belowOnPhone?: boolean
+}
 
 /** Порядок внутри направления — от города к краю области. */
 export const MAP_CITIES: City[] = [
   { name: 'Мурино', lon: 30.44, lat: 60.05, dir: 'north' },
   { name: 'Сертолово', lon: 30.21, lat: 60.14, dir: 'north' },
-  { name: 'Сестрорецк', lon: 29.96, lat: 60.09, dir: 'north' },
-  { name: 'Зеленогорск', lon: 29.70, lat: 60.20, dir: 'north' },
+  { name: 'Сестрорецк', lon: 29.96, lat: 60.09, dir: 'north', inner: true },
+  { name: 'Зеленогорск', lon: 29.70, lat: 60.20, dir: 'north', inner: true },
   { name: 'Выборг', lon: 28.75, lat: 60.71, dir: 'north', big: true },
   { name: 'Приозерск', lon: 30.13, lat: 61.04, dir: 'north', big: true },
 
@@ -39,18 +55,18 @@ export const MAP_CITIES: City[] = [
   { name: 'Подпорожье', lon: 34.17, lat: 60.91, dir: 'east' },
   { name: 'Бокситогорск', lon: 33.85, lat: 59.47, dir: 'east' },
 
-  { name: 'Пушкин', lon: 30.41, lat: 59.72, dir: 'south' },
-  { name: 'Колпино', lon: 30.59, lat: 59.75, dir: 'south' },
+  { name: 'Пушкин', lon: 30.41, lat: 59.72, dir: 'south', inner: true },
+  { name: 'Колпино', lon: 30.59, lat: 59.75, dir: 'south', inner: true },
   { name: 'Гатчина', lon: 30.13, lat: 59.57, dir: 'south', big: true, left: true },
   { name: 'Тосно', lon: 30.88, lat: 59.54, dir: 'south' },
   { name: 'Луга', lon: 29.85, lat: 58.74, dir: 'south', big: true },
 
-  { name: 'Петергоф', lon: 29.90, lat: 59.88, dir: 'west' },
-  { name: 'Ломоносов', lon: 29.77, lat: 59.91, dir: 'west' },
-  { name: 'Кронштадт', lon: 29.77, lat: 59.99, dir: 'west' },
+  { name: 'Петергоф', lon: 29.90, lat: 59.88, dir: 'west', inner: true },
+  { name: 'Ломоносов', lon: 29.77, lat: 59.91, dir: 'west', inner: true },
+  { name: 'Кронштадт', lon: 29.77, lat: 59.99, dir: 'west', inner: true },
   { name: 'Сосновый Бор', lon: 29.09, lat: 59.90, dir: 'west' },
   { name: 'Волосово', lon: 29.49, lat: 59.43, dir: 'west' },
-  { name: 'Кингисепп', lon: 28.61, lat: 59.37, dir: 'west', big: true },
+  { name: 'Кингисепп', lon: 28.61, lat: 59.37, dir: 'west', big: true, belowOnPhone: true },
   { name: 'Сланцы', lon: 28.09, lat: 59.12, dir: 'west' },
 ]
 

@@ -30,3 +30,17 @@ export function onHeroLoopDone(cb: () => void): () => void {
   window.addEventListener(EVENT, cb, { once: true })
   return () => window.removeEventListener(EVENT, cb)
 }
+
+/**
+ * То же, но только на хорошей связи. На 3G/2G (так Chrome называет и слабый 4G) и при
+ * экономии трафика глава «Грузим» и экран бота качаются лишь при подходе к ним: клип
+ * главы с петлёй — до 9,6 МБ, на слабом 4G это 30–60 с занятого канала (замер 14 ноября
+ * 2026), а человеку на обочине канал нужен для звонка и Telegram. iPhone связь не
+ * сообщает — для него связь считается хорошей, как и в HeroLoop.
+ */
+export function onHeroLoopDoneIfFast(cb: () => void): () => void {
+  const conn = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } })
+    .connection
+  if (conn?.saveData || /(^|-)(2g|3g)$/.test(conn?.effectiveType ?? '')) return () => {}
+  return onHeroLoopDone(cb)
+}

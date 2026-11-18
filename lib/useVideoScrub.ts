@@ -127,16 +127,52 @@ export function useVideoScrub({
     // и, начав качаться сразу, отбирает канал у постера и шрифтов — то есть
     // ровно у того, из чего складывается первое впечатление и LCP. Пока он
     // качается, на экране постер, так что ждать нечего.
-    const attachSource = () => {
-      // Адрес мог остаться от прошлого прогона эффекта — тогда не трогаем его.
-      if (!video.getAttribute('src')) {
-        const narrow = window.matchMedia(
-          `(max-width: ${sources.narrowMaxWidth}px)`,
-        ).matches
-        video.src = narrow ? sources.narrow : sources.wide
-      }
+    /*
+     * Сцена ниже первого экрана (attachWhenNear) качает клип целиком своим запросом и отдаёт
+     * плееру из памяти (blob). Обычный адрес с preload="auto" Chrome на мобильной связи сам
+     * понижает до preload="metadata" и докачивает клип то целиком, то на треть — как
+     * совпадёт по времени (замер 14 ноября 2026: компьютер с 4G — 29% вместо 100% от
+     * сдвига загрузки шрифтов на секунду). Недокачанный клип на первом проходе догружается
+     * рывками. Из памяти перемотка от сети не зависит, и второй слой берёт тот же blob.
+     *
+     * Если посетитель подошёл к сцене раньше, чем клип скачан (полэкрана), запрос
+     * обрывается и плеер получает обычный адрес — так он покажет первые кадры раньше.
+     * Ссылку на blob не отзываем: оба слоя читают его при каждой перемотке, а страница одна.
+     */
+    let fetchCtrl: AbortController | null = null
+    let closeObserver: IntersectionObserver | null = null
+    const setSrc = (src: string) => {
+      if (!video.getAttribute('src')) video.src = src
       // Замок автозапуска снимаем сразу с адресом, не дожидаясь жеста.
       unlock()
+    }
+    const attachSource = () => {
+      // Адрес мог остаться от прошлого прогона эффекта — тогда не трогаем его.
+      if (video.getAttribute('src') || fetchCtrl) return unlock()
+      const narrow = window.matchMedia(`(max-width: ${sources.narrowMaxWidth}px)`).matches
+      const url = narrow ? sources.narrow : sources.wide
+      if (!attachWhenNear || typeof AbortController === 'undefined') return setSrc(url)
+
+      const ctrl = (fetchCtrl = new AbortController())
+      const direct = () => {
+        closeObserver?.disconnect()
+        ctrl.abort()
+        setSrc(url)
+      }
+      closeObserver = new IntersectionObserver(([e]) => e.isIntersecting && direct(), {
+        rootMargin: '50% 0px',
+      })
+      closeObserver.observe(section)
+      fetch(url, { signal: ctrl.signal })
+        .then((r) => (r.ok ? r.blob() : Promise.reject(new Error(`HTTP ${r.status}`))))
+        .then((blob) => {
+          closeObserver?.disconnect()
+          if (!video.getAttribute('src')) setSrc(URL.createObjectURL(blob))
+        })
+        .catch(() => {
+          // Оборвали сами (посетитель уже у сцены) — адрес уже стоит. Иначе — сбой сети: обычный путь.
+          if (!ctrl.signal.aborted) direct()
+        })
     }
 
     /*
@@ -408,6 +444,8 @@ export function useVideoScrub({
       window.removeEventListener('load', attachSource)
       nearObserver?.disconnect()
       dropEarly?.()
+      closeObserver?.disconnect()
+      if (!video.getAttribute('src')) fetchCtrl?.abort()
       dropUnlockListeners()
       video.removeEventListener('loadeddata', handleReady)
       video.removeEventListener('seeked', onSeekedA)
