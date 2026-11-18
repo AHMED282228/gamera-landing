@@ -181,7 +181,7 @@ export const TRUCK_TOUR = [
 export const PHOTOS_HEAD = {
   title: 'С вызовов',
   accent: 'каждый выезд — в нашем канале',
-  intro: 'Снимки с настоящих вызовов, без постановки и стоковых фото. Новые выкладываем в Telegram-канал.',
+  intro: 'Снимки с настоящих вызовов. Новые выкладываем в Telegram-канал.',
 }
 
 export const COVERAGE_HEAD = {
