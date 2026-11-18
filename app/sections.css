@@ -210,18 +210,91 @@
   }
 }
 
+/* Подпись «Петербург» — выноской на север, в пустом месте перешейка: справа
+   от точки на ней лежали огоньки Мурино и Кудрово. Низ подписи — в точке
+   SPB_LABEL_AT (Coverage.tsx), к точке города ведёт тонкая линия. */
 .cov-hub__label {
   position: absolute;
-  left: 12px;
-  top: -28px;
+  z-index: 3;
+  transform: translate(-50%, -100%);
   font-family: var(--font-display);
   font-size: clamp(0.8125rem, 0.68rem + 0.4vw, 1.0625rem);
   font-weight: 800;
+  line-height: 1.1;
   white-space: nowrap;
   color: var(--color-ink);
   text-shadow:
     0 0 6px var(--color-bg),
     0 0 14px var(--color-bg);
+  pointer-events: none;
+  transition: color 250ms var(--ease-out-quart);
+}
+
+.cov-hub__label.is-lit {
+  color: #ff5a60;
+}
+
+.cov-callout {
+  stroke: rgb(233 233 226 / 0.5);
+  stroke-width: 1.3;
+  stroke-linecap: round;
+}
+
+/* Путь «отсюда выедем туда» — по дорогам от Петербурга к найденному или
+   наведённому городу; прочерчивается тем дольше, чем дальше город (--draw). */
+.cov-route {
+  pointer-events: none;
+}
+
+.cov-route__case,
+.cov-route__line,
+.cov-route__glow {
+  fill: none;
+  stroke: var(--color-amber);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: cov-draw var(--draw, 700ms) var(--ease-in-out-quart, cubic-bezier(0.76, 0, 0.24, 1)) forwards;
+}
+
+.cov-route__case {
+  stroke: var(--color-bg);
+  stroke-width: 6.5;
+  opacity: 0.85;
+}
+
+.cov-route__line {
+  stroke-width: 2.4;
+}
+
+.cov-route__glow {
+  stroke-width: 9;
+  opacity: 0.16;
+}
+
+@media (max-width: 640px) {
+  .cov-route__case {
+    stroke-width: 10;
+  }
+
+  .cov-route__line {
+    stroke-width: 4;
+  }
+
+  .cov-route__glow {
+    stroke-width: 14;
+  }
+
+  .cov-callout {
+    stroke-width: 2.4;
+  }
+}
+
+@keyframes cov-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
 }
 
 /* Невидимая зона попадания вокруг точки — по маленькой точке мышью не попасть. */
@@ -234,6 +307,8 @@
   height: 28px;
 }
 
+/* Тёмный ободок: огонёк отделён от жёлтой линии пути, даже когда она
+   проходит прямо под ним. */
 .cov-city__dot {
   position: absolute;
   left: -4px;
@@ -242,7 +317,9 @@
   height: 8px;
   border-radius: 50%;
   background: var(--color-amber);
-  box-shadow: 0 0 10px rgb(255 178 30 / 0.6);
+  box-shadow:
+    0 0 0 2px var(--color-bg),
+    0 0 10px rgb(255 178 30 / 0.6);
   transition:
     transform 250ms var(--ease-out-quart),
     box-shadow 250ms var(--ease-out-quart);
@@ -253,6 +330,18 @@
   top: -5px;
   width: 10px;
   height: 10px;
+}
+
+/* Районы самого Петербурга — огонёк мельче и тише, город не сливается в пятно. */
+.cov-city--inner .cov-city__dot {
+  left: -3px;
+  top: -3px;
+  width: 6px;
+  height: 6px;
+  background: rgb(255 178 30 / 0.8);
+  box-shadow:
+    0 0 0 1.5px var(--color-bg),
+    0 0 6px rgb(255 178 30 / 0.45);
 }
 
 .cov-city__label {
@@ -274,15 +363,44 @@
   pointer-events: none;
 }
 
-.cov-city--big .cov-city__label {
+.cov-city--big .cov-city__label,
+.cov-city[data-placed] .cov-city__label {
   opacity: 1;
   transform: none;
+}
+
+/* Длина пути — только у наведённого или найденного города. */
+.cov-city__km {
+  display: none;
+  font-weight: 500;
+  color: var(--color-amber);
+}
+
+.cov-city.is-lit .cov-city__km {
+  display: inline;
+}
+
+/* Наведён город — остальные огоньки и подписи отступают, путь главный. */
+.cov-city {
+  transition: opacity 250ms var(--ease-out-quart);
+}
+
+.cov-map[data-lit] .cov-city:not(.is-lit) {
+  opacity: 0.38;
 }
 
 /* Подпись слева от точки — там, где справа тесно. */
 .cov-city--left .cov-city__label {
   left: auto;
   right: 11px;
+}
+
+@media (max-width: 640px) {
+  .cov-city--m-below .cov-city__label {
+    left: -8px;
+    right: auto;
+    top: 7px;
+  }
 }
 
 .cov-city.is-lit {
@@ -311,7 +429,8 @@
   }
 
   html.js .cov-map.reveal .cov-city__dot,
-  html.js .cov-map.reveal .cov-city--big .cov-city__label {
+  html.js .cov-map.reveal .cov-city--big .cov-city__label,
+  html.js .cov-map.reveal .cov-city[data-placed] .cov-city__label {
     opacity: 0;
     transform: scale(0.3);
   }
@@ -329,7 +448,8 @@
       box-shadow 250ms var(--ease-out-quart);
   }
 
-  html.js .cov-map.reveal.is-in .cov-city--big .cov-city__label {
+  html.js .cov-map.reveal.is-in .cov-city--big .cov-city__label,
+  html.js .cov-map.reveal.is-in .cov-city[data-placed] .cov-city__label {
     opacity: 1;
     transform: none;
     transition:
@@ -341,11 +461,42 @@
     transform: scale(1.6);
     transition-delay: 0ms;
   }
+
+  /* Выноска «Петербург» прочерчивается вверх, подпись проявляется за ней. */
+  html.js .cov-map.reveal .cov-callout {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+  }
+
+  html.js .cov-map.reveal .cov-hub__label {
+    opacity: 0;
+    translate: 0 6px;
+  }
+
+  html.js .cov-map.reveal.is-in .cov-callout {
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 700ms var(--ease-out-quart) 250ms;
+  }
+
+  html.js .cov-map.reveal.is-in .cov-hub__label {
+    opacity: 1;
+    translate: 0 0;
+    transition:
+      opacity 500ms var(--ease-out-quart) 650ms,
+      translate 600ms var(--ease-out-expo) 650ms,
+      color 250ms var(--ease-out-quart);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .cov-hub__dot::after {
     animation: none;
+  }
+
+  .cov-route__line,
+  .cov-route__glow {
+    animation: none;
+    stroke-dashoffset: 0;
   }
 }
 
@@ -378,4 +529,10 @@
   display: grid;
   gap: 0.35rem;
   color: var(--color-ink-2);
+  /* Длинные названия на узком экране шире колонки: перенос по слогам.
+     Места переноса заданы в Coverage.tsx (SPLIT) — у Chrome и WebKit на
+     Windows нет русского словаря; auto — для городов, добавленных позже.
+     Разрыв без дефиса (overflow-wrap) хуже: «Зеленогорс-к». */
+  hyphens: auto;
+  -webkit-hyphens: auto;
 }

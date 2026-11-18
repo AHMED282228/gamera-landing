@@ -1,0 +1,890 @@
+/* ==========================================================================
+   Обзор эвакуатора (components/sections/Truck.tsx): показ по нажатию.
+   Слева список деталей, справа кадр 4K; камера, подъём детали, контур и
+   точки двигает скрипт (transform / opacity / SVG). Здесь — раскладка и вид.
+   ========================================================================== */
+
+/* Заголовок во всю ширину; под ним список слева и кадр до правого края. */
+.tour__grid {
+  display: grid;
+  grid-template-columns: minmax(18rem, 25rem) minmax(0, 1fr);
+  grid-template-rows: auto 1fr auto auto 1fr;
+  grid-template-areas:
+    'head head'
+    '. stage'
+    'list stage'
+    'cta stage'
+    '. stage';
+  column-gap: clamp(2rem, 4vw, 4.5rem);
+  padding-left: max(6vw, 1.25rem);
+}
+
+.tour__head {
+  grid-area: head;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5rem 3rem;
+  margin-bottom: clamp(2rem, 4vw, 3.25rem);
+  padding-right: max(6vw, 1.25rem);
+}
+
+.tour__head .section-title {
+  max-width: none;
+}
+
+.tour__head .section-intro {
+  max-width: 34ch;
+  margin-top: 0;
+}
+
+/* --- Кадр ------------------------------------------------------------------ */
+
+.tour__stage {
+  grid-area: stage;
+  position: relative;
+  aspect-ratio: 16 / 10;
+  max-height: 84svh;
+  overflow: hidden;
+  isolation: isolate;
+  touch-action: pan-y;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tour__frame {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--color-bg);
+  /* Края растворяются в фоне, как кадр клипа в «Грузим»: слева — в поле текста. */
+  -webkit-mask-image:
+    linear-gradient(to right, transparent, #000 9%),
+    linear-gradient(to bottom, transparent, #000 6%, #000 94%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(to right, transparent, #000 9%),
+    linear-gradient(to bottom, transparent, #000 6%, #000 94%, transparent);
+  mask-composite: intersect;
+}
+
+/* Слой кадра: скрипт задаёт размер (кадр × наибольшее приближение) и сдвиг.
+   Без скрипта — общий план кадра сбоку во всё окно. */
+.tour-world {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  transform-origin: 0 0;
+  visibility: hidden;
+  will-change: transform, opacity;
+}
+
+.tour-world[data-photo='a'] {
+  visibility: visible;
+}
+
+.tour-world__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: cover;
+}
+
+.tour-dim,
+.tour-lift {
+  position: absolute;
+  inset: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.tour-dim {
+  background: rgb(6 7 10 / 0.7);
+}
+
+.tour-lift {
+  will-change: transform, filter;
+}
+
+/* --- Контур детали и выноска ---------------------------------------------- */
+
+.tour__hud {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.tour-edge,
+.tour-wire {
+  fill: none;
+  visibility: hidden;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.tour-edge {
+  stroke: var(--color-amber);
+  stroke-width: 2;
+  filter: drop-shadow(0 0 5px rgb(255 178 30 / 0.7));
+}
+
+/* Свечение уже, чем было (9): шире — оно наползало на тонкие детали (трубу упора). */
+.tour-edge--glow {
+  stroke: rgb(255 178 30 / 0.2);
+  stroke-width: 6;
+  filter: none;
+}
+
+.tour-edge--fine {
+  stroke-width: 1.4;
+  filter: drop-shadow(0 0 3px rgb(255 178 30 / 0.6));
+}
+
+.tour-edge--glow.tour-edge--fine {
+  stroke-width: 4;
+  filter: none;
+}
+
+.tour-wire {
+  stroke: rgb(255 178 30 / 0.75);
+  stroke-width: 1.2;
+}
+
+/* Ремни через колёса — слои поверх снимка (готовые картинки по геометрии колеса,
+   с «рентгеном» кузова). Проявляются маской conic-gradient из Truck.tsx. */
+.tour-strapimg {
+  position: absolute;
+  max-width: none;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+/* Трос лебёдки: линия по настилу, по ней к барабану бегут штрихи — «тянет». */
+.tour-cable {
+  fill: none;
+  visibility: hidden;
+  stroke: var(--color-amber);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 4px rgb(255 178 30 / 0.65));
+}
+
+.tour-cable--flow {
+  stroke: #fff6dc;
+  stroke-width: 2.2;
+  stroke-dasharray: 3 15;
+  filter: none;
+  transition: opacity 0.3s ease;
+  animation: tour-pull 1.1s linear infinite;
+}
+
+/* Сдвиг узора назад по линии — штрихи бегут к её началу, к барабану. */
+@keyframes tour-pull {
+  to {
+    stroke-dashoffset: 18;
+  }
+}
+
+.tour-cable-tag {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 3;
+  visibility: hidden;
+  padding: 0.3rem 0.55rem;
+  border: 1px solid rgb(255 178 30 / 0.45);
+  border-radius: 6px;
+  background: rgb(10 11 14 / 0.82);
+  color: var(--color-amber);
+  font: 600 0.75rem / 1 var(--font-display);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  pointer-events: none;
+  translate: 10px calc(-100% - 10px);
+}
+
+/* У правого края кадра подпись встаёт над точкой, а если и так тесно — слева. */
+.tour-cable-tag[data-pos='top'] {
+  translate: -50% calc(-100% - 14px);
+}
+
+.tour-cable-tag[data-pos='left'] {
+  translate: calc(-100% - 10px) calc(-100% - 10px);
+}
+
+/* --- Точки-кнопки на деталях ---------------------------------------------- */
+
+.tour-spot {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 3;
+  width: 0;
+  height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.18s ease,
+    visibility 0s linear 0.18s;
+}
+
+.tour-spot[data-on] {
+  opacity: 1;
+  visibility: visible;
+  transition:
+    opacity 0.4s var(--ease-out-quart) 0.05s,
+    visibility 0s;
+}
+
+/* Попасть пальцем: зона нажатия 44 px вокруг точки. */
+.tour-spot::before {
+  content: '';
+  position: absolute;
+  left: -22px;
+  top: -22px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+}
+
+.tour-spot__dot,
+.tour-spot__ring {
+  position: absolute;
+  left: -12px;
+  top: -12px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-style: normal;
+  pointer-events: none;
+}
+
+.tour-spot__dot {
+  display: grid;
+  place-items: center;
+  background: var(--color-amber);
+  box-shadow:
+    0 0 0 3px rgb(10 11 14 / 0.55),
+    0 0 16px rgb(255 178 30 / 0.85);
+  color: #17110a;
+  font: 800 0.75rem / 1 var(--font-display);
+  transition: transform 0.25s var(--ease-out-quart);
+}
+
+.tour-spot__ring {
+  border: 1.5px solid var(--color-amber);
+  animation: tour-ping 2.4s var(--ease-out-quart) infinite;
+}
+
+@keyframes tour-ping {
+  from {
+    opacity: 0.85;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(2.4);
+  }
+}
+
+.tour-spot__label {
+  position: absolute;
+  left: 20px;
+  top: 0;
+  padding: 0.4rem 0.65rem;
+  border: 1px solid rgb(255 178 30 / 0.38);
+  border-radius: 8px;
+  background: rgb(10 11 14 / 0.82);
+  color: var(--color-ink);
+  font: 600 0.8125rem / 1 var(--font-display);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translateY(-50%);
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.tour-spot__turn {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  margin: -2px 0 -2px 0.4rem;
+  vertical-align: middle;
+  fill: none;
+  stroke: var(--color-amber);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.tour-spot[data-left] .tour-spot__label {
+  left: auto;
+  right: 20px;
+}
+
+/* Тесно с обеих сторон: подпись прячется, номер на точке остаётся;
+   название видно при наведении и фокусе (Truck.tsx, шаг 3б). */
+.tour-spot[data-quiet] .tour-spot__label {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.tour-spot[data-quiet]:hover .tour-spot__label,
+.tour-spot[data-quiet][data-hot] .tour-spot__label {
+  opacity: 1;
+  z-index: 2;
+}
+
+.tour-spot__badge {
+  display: none;
+}
+
+.tour-spot:focus-visible {
+  outline: none;
+}
+
+.tour-spot:focus-visible .tour-spot__dot {
+  outline: 2px solid var(--color-amber);
+  outline-offset: 4px;
+}
+
+@media (hover: hover) {
+  .tour-spot:hover .tour-spot__dot,
+  .tour-spot[data-hot] .tour-spot__dot {
+    transform: scale(1.2);
+  }
+
+  .tour-spot:hover .tour-spot__label,
+  .tour-spot[data-hot] .tour-spot__label {
+    border-color: var(--color-amber);
+    background: rgb(10 11 14 / 0.92);
+  }
+}
+
+.tour-spot:active .tour-spot__dot {
+  transform: scale(0.92);
+}
+
+/* --- Сноска с настоящей съёмкой ------------------------------------------- */
+
+.tour-card {
+  position: absolute;
+  left: clamp(1rem, 3.5%, 2.25rem);
+  bottom: clamp(1rem, 5%, 2.25rem);
+  z-index: 4;
+  width: min(30%, 17rem);
+  margin: 0;
+  opacity: 0;
+  visibility: hidden;
+  transform: translate3d(0, 14px, 0);
+  clip-path: inset(100% 0 0 0 round 14px);
+  transition:
+    opacity 0.2s ease,
+    transform 0.25s ease,
+    clip-path 0.25s ease,
+    visibility 0s linear 0.25s;
+}
+
+.tour-card[data-on] {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  clip-path: inset(0 0 -3rem 0 round 14px);
+  transition:
+    opacity 0.35s var(--ease-out-quart),
+    transform 0.55s var(--ease-out-quart),
+    clip-path 0.55s var(--ease-out-quart),
+    visibility 0s;
+}
+
+.tour-card__frame {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border: 1px solid var(--color-line-strong);
+  border-radius: 14px;
+  background: #000;
+  box-shadow: 0 24px 60px -20px rgb(0 0 0 / 0.85);
+}
+
+.tour-card__media {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.1);
+  transform-origin: 50% 60%;
+  transition: transform 1.6s var(--ease-out-quart);
+}
+
+.tour-card[data-on] .tour-card__media {
+  transform: scale(1.02);
+}
+
+.tour-card__media--remen {
+  transform-origin: 40% 60%;
+}
+
+/* Наезд — к упору у колеса. */
+.tour-card__media--upory {
+  transform-origin: 60% 78%;
+}
+
+/* Наезд сноски — к барабану лебёдки. */
+.tour-card__media--lebedka {
+  transform-origin: 42% 50%;
+}
+
+.tour-card__tag {
+  position: absolute;
+  left: 0.6rem;
+  top: 0.6rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.55rem;
+  border-radius: 6px;
+  background: rgb(10 11 14 / 0.72);
+  color: var(--color-amber);
+  font: 600 0.6875rem / 1 var(--font-display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tour-card__tag::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-amber);
+}
+
+.tour-card figcaption {
+  margin-top: 0.55rem;
+  color: var(--color-ink-2);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  text-shadow: 0 1px 8px rgb(0 0 0 / 0.9);
+}
+
+/* --- «Общий вид» ------------------------------------------------------------ */
+
+.tour__back {
+  position: absolute;
+  right: clamp(0.75rem, 2.5%, 1.5rem);
+  top: clamp(0.75rem, 4%, 1.5rem);
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.5rem;
+  padding: 0 0.95rem;
+  border: 1px solid var(--color-line-strong);
+  border-radius: 999px;
+  background: rgb(10 11 14 / 0.72);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  color: var(--color-ink);
+  font: 600 0.8125rem / 1 var(--font-display);
+  cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+  transform: translate3d(0, -6px, 0);
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    visibility 0s linear 0.2s;
+}
+
+.tour__back[data-on] {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition:
+    opacity 0.35s var(--ease-out-quart) 0.3s,
+    transform 0.35s var(--ease-out-quart) 0.3s,
+    border-color 0.2s ease,
+    visibility 0s;
+}
+
+.tour__back svg {
+  width: 0.9rem;
+  height: 0.9rem;
+  fill: none;
+  stroke: var(--color-amber);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+@media (hover: hover) {
+  .tour__back:hover {
+    border-color: var(--color-amber);
+  }
+}
+
+.tour__back:active {
+  transform: scale(0.97);
+}
+
+/* --- Список деталей ---------------------------------------------------------- */
+
+.tour-list {
+  grid-area: list;
+  border-top: 1px solid var(--color-line);
+  list-style: none;
+}
+
+.tour-item {
+  position: relative;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.tour-item h3 {
+  margin: 0;
+  font: inherit;
+}
+
+.tour-item__head {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  width: 100%;
+  /* Целые пиксели (56 = 14 + 28 + 14): значок встаёт ровно по пикселям. */
+  min-height: 3.5rem;
+  padding: 0.875rem 0;
+  border: 0;
+  background: none;
+  color: var(--color-ink-2);
+  font: 700 1.125rem / 1.2 var(--font-display);
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.tour-item__no {
+  min-width: 1.6rem;
+  color: var(--color-ink-3);
+  font: 700 var(--text-hud) / 1 var(--font-display);
+  letter-spacing: 0.14em;
+  transition: color 0.2s ease;
+}
+
+.tour-item__title {
+  flex: 1;
+}
+
+/* Плюс, у раскрытой — минус (вертикальная черта ложится на горизонтальную). */
+.tour-item__icon {
+  display: block;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  overflow: visible;
+}
+
+.tour-item__ring {
+  fill: transparent;
+  stroke: var(--color-line-strong);
+  stroke-width: 1;
+  transition:
+    stroke 0.2s ease,
+    fill 0.2s ease;
+}
+
+.tour-item__line {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: butt;
+  shape-rendering: crispEdges;
+}
+
+.tour-item__line--v {
+  transform-box: view-box;
+  transform-origin: 14px 14px;
+  transition: transform 0.3s var(--ease-out-quart);
+}
+
+.tour-item[data-on] .tour-item__head {
+  color: var(--color-ink);
+}
+
+.tour-item[data-on] .tour-item__no {
+  color: var(--color-amber);
+}
+
+.tour-item[data-on] .tour-item__icon {
+  color: #17110a;
+}
+
+.tour-item[data-on] .tour-item__ring {
+  fill: var(--color-amber);
+  stroke: var(--color-amber);
+}
+
+.tour-item[data-on] .tour-item__line--v {
+  transform: rotate(90deg);
+}
+
+@media (hover: hover) {
+  .tour-item__head:hover {
+    color: var(--color-ink);
+  }
+
+  .tour-item__head:hover .tour-item__ring {
+    stroke: var(--color-amber);
+  }
+}
+
+.tour-item__head:focus-visible {
+  outline-offset: 4px;
+}
+
+/* Раскрытие — высотой через grid-строку 0fr → 1fr, без замеров. */
+.tour-item__body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.45s var(--ease-out-quart);
+}
+
+.tour-item[data-on] .tour-item__body {
+  grid-template-rows: 1fr;
+}
+
+.tour-item__inner {
+  min-height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  transition: visibility 0s linear 0.45s;
+}
+
+.tour-item[data-on] .tour-item__inner {
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+.tour-item__text {
+  padding: 0 0 1.1rem 2.5rem;
+  color: var(--color-ink-2);
+  font-size: 1rem;
+  line-height: 1.55;
+  opacity: 0;
+  transform: translate3d(0, 6px, 0);
+  transition:
+    opacity 0.2s ease,
+    transform 0.3s ease;
+}
+
+.tour-item[data-on] .tour-item__text {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.4s var(--ease-out-quart) 0.12s,
+    transform 0.45s var(--ease-out-quart) 0.12s;
+}
+
+/* Сам обзор: полоска под раскрытой строкой — сколько осталось до следующей. */
+.tour-item__bar {
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  width: 100%;
+  height: 2px;
+  background: var(--color-amber);
+  box-shadow: 0 0 8px rgb(255 178 30 / 0.6);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  animation: tour-auto var(--auto) linear forwards;
+}
+
+@keyframes tour-auto {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.tour__cta {
+  grid-area: cta;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.75rem;
+}
+
+/* --- Без JS: все тексты раскрыты, точек и сносок нет ---------------------- */
+
+html:not(.js) .tour-item__body {
+  grid-template-rows: 1fr;
+}
+
+html:not(.js) .tour-item__inner {
+  visibility: visible;
+}
+
+html:not(.js) .tour-item__text {
+  opacity: 1;
+  transform: none;
+}
+
+html:not(.js) .tour-item__icon,
+html:not(.js) .tour__back {
+  display: none;
+}
+
+/* --- Телефон и планшет: заголовок, кадр во всю ширину, список под ним ------ */
+
+@media (max-width: 1023.98px) {
+  .tour__grid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    grid-template-areas:
+      'head'
+      'stage'
+      'list'
+      'cta';
+    padding-left: 0;
+  }
+
+  .tour__head,
+  .tour-list,
+  .tour__cta {
+    margin-inline: max(6vw, 1.25rem);
+  }
+
+  .tour__head {
+    display: block;
+    margin-bottom: 0;
+    padding-right: 0;
+  }
+
+  .tour__head .section-intro {
+    margin-top: 1rem;
+  }
+
+  .tour__stage {
+    aspect-ratio: 3 / 2;
+    max-height: 70svh;
+    margin-top: 1.5rem;
+  }
+
+  .tour__frame {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
+  .tour-list {
+    margin-top: 0.5rem;
+    border-top: 0;
+  }
+
+  .tour-item__head {
+    min-height: 3.25rem;
+    padding: 0.75rem 0;
+    font-size: 1.0625rem;
+  }
+
+  .tour-item__text {
+    padding-left: 2.5rem;
+    font-size: 0.9375rem;
+  }
+
+  /* Внизу страницы и так висит кнопка звонка. */
+  .tour__cta {
+    display: none;
+  }
+
+  .tour-spot__dot,
+  .tour-spot__ring {
+    left: -11px;
+    top: -11px;
+    width: 22px;
+    height: 22px;
+  }
+
+  /* Кадр маленький: номера на точках совпадают с номерами в списке. */
+  .tour-spot__label {
+    display: none;
+  }
+
+  .tour-spot__badge {
+    position: absolute;
+    left: 4px;
+    top: -22px;
+    display: grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    border: 1px solid rgb(255 178 30 / 0.5);
+    border-radius: 50%;
+    background: rgb(10 11 14 / 0.88);
+    pointer-events: none;
+  }
+
+  .tour-spot__badge .tour-spot__turn {
+    width: 11px;
+    height: 11px;
+    margin: 0;
+  }
+
+  .tour-card {
+    left: 0.75rem;
+    bottom: 0.75rem;
+    width: 36vw;
+  }
+
+  .tour-card__frame {
+    border-radius: 10px;
+  }
+
+  .tour-card figcaption {
+    display: none;
+  }
+
+  .tour-card__tag {
+    left: 0.4rem;
+    top: 0.4rem;
+    padding: 0.28rem 0.42rem;
+    font-size: 0.5625rem;
+  }
+
+  .tour__back {
+    min-height: 2.25rem;
+    padding: 0 0.8rem;
+    font-size: 0.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tour-spot__ring {
+    animation: none;
+    opacity: 0;
+  }
+
+  .tour-cable--flow {
+    animation: none;
+  }
+
+  .tour-item__body,
+  .tour-item__text,
+  .tour-card,
+  .tour-card__media {
+    transition-duration: 0.01s;
+  }
+}

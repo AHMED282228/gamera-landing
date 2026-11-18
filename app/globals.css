@@ -90,6 +90,18 @@
    База
    ========================================================================== */
 
+/* Высота полосы глав (.chapters): под неё отодвигается то, что стоит у верха
+   закреплённых экранов. 48 px, на узких экранах 40 px — замер 16 ноября 2026. */
+:root {
+  --chap-h: 3.0125rem;
+}
+
+@media (max-width: 640px) {
+  :root {
+    --chap-h: 2.511rem;
+  }
+}
+
 @layer base {
   html {
     background-color: var(--color-bg);
@@ -442,8 +454,28 @@
   max-width: min(27vw, 30rem);
 }
 
+/* Буквы подписи видны только внутри её поля (свет фары — заливка по тексту),
+   поэтому поле не уже самого длинного слова: с крупным шрифтом и на
+   планшете «Крепление» было шире поля, и конец слова пропадал. */
+.scrub-caption h2 {
+  min-width: min-content;
+}
+
 .scrub-caption {
   --head-align: calc(var(--text-h2) * 0.55 - var(--marker-h) / 2);
+}
+
+/* Подписи этапов на компьютере опущены целиком (владелец, 15 ноября 2026):
+   после сокращения до «слово + строка» лесенка кончалась высоко, и
+   «Крепление» стояло заметно выше, чем при прежнем длинном описании —
+   на сдвиг ≈ разницу между тем и этим блоком (1440×900: низ последней
+   подписи 570 → 669 px, как было). Заголовок главы («Грузим…») не тронут:
+   он и так длинный и опускать его некуда — под ним панель с кнопками.
+   Свет фары берёт положение подписей из разметки, поэтому едет вместе с ними. */
+@media (min-width: 769px) {
+  .scrub-copy > .scrub-caption {
+    top: calc(var(--anchor, 0) * var(--copy-travel) - var(--head-align, 0px) + clamp(3rem, 11vh, 7rem));
+  }
 }
 
 /* --------------------------------------------------------------------------
@@ -585,6 +617,9 @@
      * Полоса ниже (~28vh на 390×844), текст поднят вслед за ней.
      */
     --shot-crop: 0.92;
+    /* Ширина кадра: на телефоне во всю ширину; горизонтально — меньше
+       (правило «Телефон горизонтально» в конце файла), иначе кадр выше экрана. */
+    --m-frame-w: 100vw;
     /* Кадр во всю ширину, свет уходит вниз, под текст. Сверху кромка
        короткая — только чтобы вторая сцена въезжала в окно без резкой
        линии; под шапкой сцены первой затемнять нечего. */
@@ -601,11 +636,13 @@
     width: 100%;
   }
 
+  /* Кадр стоит под полосой глав, а не под ней: раньше полоса (40 px) закрывала
+     маячок и крышу — 19% высоты кадра (проверка 16 ноября 2026, №6). */
   .scrub-frame,
   .scrub-amb {
-    width: 100vw;
+    width: var(--m-frame-w);
     right: 0;
-    top: 0;
+    top: var(--chap-h);
     transform: none;
   }
 
@@ -618,7 +655,7 @@
   /* Высота полосы кадра — ширина экрана · 9/16 / срез. Под ней свет гаснет в
      --bg до начала текста и совсем исчезает под заголовком. */
   .scrub-amb-shade {
-    --frame-h: calc(100vw / var(--shot-ar) / var(--shot-crop));
+    --frame-h: calc(var(--m-frame-w) / var(--shot-ar) / var(--shot-crop) + var(--chap-h));
     background: linear-gradient(
       to bottom,
       rgb(10 11 14 / 0) calc(var(--frame-h) - 8vw),
@@ -659,7 +696,7 @@
     /* Подписи короткие (слово и строка), поэтому лесенка сверху вниз
        помещается и на телефоне: ход — свободная высота под кадром минус
        место под саму подпись и нижнюю панель с кнопками. */
-    --copy-travel: max(0px, calc(100svh - 100vw / var(--shot-ar) / var(--shot-crop) - 20rem));
+    --copy-travel: max(0px, calc(100svh - var(--m-frame-w) / var(--shot-ar) / var(--shot-crop) - var(--chap-h) - 20rem));
   }
 
   .scrub-caption p {
@@ -668,7 +705,7 @@
 
   /* Сразу под полосой кадра: её высота — ширина экрана · 9/16 / срез. */
   .scrub-copy {
-    top: calc(100vw / var(--shot-ar) / var(--shot-crop) + 1.5rem);
+    top: calc(var(--m-frame-w) / var(--shot-ar) / var(--shot-crop) + var(--chap-h) + 1.5rem);
     bottom: auto;
   }
 
@@ -909,10 +946,23 @@ html:not(.js) .sticky-bar {
   font-size: 1.0625rem;
   letter-spacing: -0.005em;
   line-height: 1.1;
-  white-space: nowrap;
+  /* Подпись переносится, только если не влезает (узкий экран, крупный шрифт
+     в настройках телефона): раньше nowrap выталкивал кнопку за край, и вся
+     страница становилась шире экрана (проверка 16 ноября 2026, №7–8). */
+  white-space: normal;
+  text-align: center;
+  max-width: 100%;
   cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
+}
+
+/* Кнопка с номером: если строка не помещается, номер встаёт второй строкой
+   целиком, а не вылезает за край. Сам номер не рвётся никогда. */
+.btn:has(> .btn__sub) {
+  flex-wrap: wrap;
+  row-gap: 0.1rem;
+  padding-block: 0.45rem;
 }
 
 .btn:active {
@@ -923,6 +973,11 @@ html:not(.js) .sticky-bar {
   width: 1.15em;
   height: 1.15em;
   flex: none;
+}
+
+.btn__sub,
+.call-num {
+  white-space: nowrap;
 }
 
 .btn__sub {
@@ -1785,43 +1840,55 @@ html:not(.js) .sticky-bar {
   color: var(--color-lamp);
 }
 
+/* Плюс, у открытого — минус (вертикальная черта ложится на горизонтальную).
+   SVG с линиями по целым пикселям — чёткий на любом экране. */
 .faq-plus {
-  position: relative;
+  display: block;
   flex: none;
-  width: 1.75rem;
-  height: 1.75rem;
-  border: 1px solid var(--color-line-strong);
-  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  overflow: visible;
+}
+
+.faq-plus__ring {
+  fill: transparent;
+  stroke: var(--color-line-strong);
+  stroke-width: 1;
+  transition: stroke 300ms var(--ease-out-quart);
+}
+
+.faq-plus__line {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  shape-rendering: crispEdges;
+  transition: stroke 300ms var(--ease-out-quart);
+}
+
+.faq-plus__line--v {
+  transform-box: view-box;
+  transform-origin: 14px 14px;
   transition:
-    border-color 300ms var(--ease-out-quart),
-    transform 400ms var(--ease-out-expo);
+    transform 400ms var(--ease-out-expo),
+    stroke 300ms var(--ease-out-quart);
 }
 
-.faq-plus::before,
-.faq-plus::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 10px;
-  height: 1.5px;
-  margin: -0.75px 0 0 -5px;
-  background: currentColor;
-  transition: transform 400ms var(--ease-out-expo);
+/* Открыт и не закрывается (data-closing ставит FaqItem на время закрытия). */
+.faq-item[open]:not([data-closing]) .faq-plus__ring {
+  stroke: var(--color-amber);
 }
 
-.faq-plus::after {
+.faq-item[open]:not([data-closing]) .faq-plus__line {
+  stroke: var(--color-amber);
+}
+
+.faq-item[open]:not([data-closing]) .faq-plus__line--v {
   transform: rotate(90deg);
 }
 
-.faq-item[open] .faq-plus {
-  border-color: var(--color-amber);
-  color: var(--color-amber);
-  transform: rotate(180deg);
-}
-
-.faq-item[open] .faq-plus::after {
-  transform: rotate(0deg);
+/* Высоту при раскрытии анимирует FaqItem — содержимое не вылезает за край. */
+.faq-body {
+  overflow: hidden;
 }
 
 .faq-answer {
@@ -1838,7 +1905,7 @@ html:not(.js) .sticky-bar {
 
 @media (prefers-reduced-motion: no-preference) {
   .faq-item[open] .faq-answer {
-    animation: faq-open 420ms var(--ease-out-expo);
+    animation: faq-open 450ms var(--ease-out-quart);
   }
 }
 
@@ -2001,6 +2068,7 @@ html:not(.js) .sticky-bar {
 
 .sticky-bar .btn {
   min-height: 3.25rem;
+  min-width: 0;
   padding-inline: 0.75rem;
   font-size: 1rem;
 }
@@ -2073,6 +2141,14 @@ html:not(.js) .sticky-bar {
   }
 
   html.js .h-light {
+    /* Маска режет всё, что за рамкой заголовка: хвосты «у», «р», «д» и наклон
+       последней буквы выходят за неё. Запас снизу и справа — без сдвига вёрстки
+       (content-box: ширина текста и переносы не меняются). */
+    box-sizing: content-box;
+    padding-block-end: 0.2em;
+    margin-block-end: -0.2em;
+    padding-inline-end: 0.2em;
+    margin-inline-end: -0.2em;
     -webkit-mask-image: linear-gradient(100deg, #000 0 40%, rgb(0 0 0 / 0.25) 50%, transparent 60%);
     mask-image: linear-gradient(100deg, #000 0 40%, rgb(0 0 0 / 0.25) 50%, transparent 60%);
     -webkit-mask-size: 300% 100%;
@@ -2207,8 +2283,10 @@ html:not(.js) .sticky-bar {
     mask-image: linear-gradient(180deg, transparent 0%, #000 12%, #000 72%, transparent 100%);
   }
 
+  /* Сверху место под шапку: когда текст выше экрана (крупный шрифт, телефон
+     горизонтально), заголовок уходил под логотип и срезался краем. */
   .hero-static__copy {
-    padding-block: 0 2.5rem;
+    padding-block: 5rem 2.5rem;
   }
 }
 
@@ -2241,13 +2319,27 @@ html:not(.js) .sticky-bar {
   list-style: none;
 }
 
+/* Колонки не уже содержимого не бывают: minmax(0, 1fr), иначе на узком экране
+   и с крупным шрифтом «Довезли» уходило за край. Высота полосы постоянная
+   (--chap-h) — под неё рассчитаны клип и экраны ниже. */
+.chapters__list {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
 .chapters__item {
   position: relative;
   display: flex;
   align-items: baseline;
   justify-content: center;
-  gap: 0.45rem;
-  padding: 0.8rem 0.25rem 0.75rem;
+  flex-wrap: wrap;
+  align-content: center;
+  gap: 0 0.45rem;
+  min-width: 0;
+  height: var(--chap-h);
+  overflow: hidden;
+  padding: 0 0.25rem;
+  line-height: 1.25;
+  white-space: nowrap;
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--color-ink-3);
@@ -2284,8 +2376,8 @@ html:not(.js) .sticky-bar {
 
 @media (max-width: 640px) {
   .chapters__item {
-    font-size: 0.75rem;
-    padding: 0.65rem 0 0.6rem;
+    font-size: clamp(0.6875rem, 3.4vw, 0.75rem);
+    padding: 0;
   }
 
   .chapters__num {
@@ -2409,4 +2501,126 @@ html:not(.js) .sticky-bar {
 @media (prefers-reduced-motion: reduce) {
   .rig__zoom, .rig__card, .rig[data-open] .rig__card { transition: opacity 0.2s; }
   .rig__zoom img, .rig__ring::before, .rig__media { animation: none; }
+}
+
+/* ==========================================================================
+   Телефон горизонтально (низкий экран до 520 px)
+   Проверка по устройствам 16 ноября 2026: при 270–390 px высоты кадр «Грузим»
+   был выше экрана и уходил под полосу глав, подписи — за нижний край,
+   плавающая панель звонка закрывала треть экрана.
+   ========================================================================== */
+
+@media (orientation: landscape) and (max-height: 520px) {
+  /* Панель звонка — компактная плашка в правом нижнем углу на любой ширине. */
+  .sticky-bar {
+    left: auto;
+    right: max(0.75rem, env(safe-area-inset-right));
+    bottom: max(0.6rem, env(safe-area-inset-bottom));
+    padding: 0.35rem;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-md);
+    box-shadow: 0 18px 50px -20px rgb(0 0 0 / 0.8);
+    transform: translateY(calc(100% + 1.5rem));
+  }
+
+  .sticky-bar[data-shown] {
+    transform: none;
+  }
+
+  .sticky-bar .btn {
+    min-height: 2.75rem;
+    padding-inline: 0.85rem;
+    font-size: 0.9375rem;
+  }
+
+  .sticky-bar .flex-auto {
+    flex: none;
+  }
+}
+
+/* Узкий горизонтальный экран (вёрстка телефона): кадр по высоте занимает
+   чуть больше половины места под полосой глав, подписи — под ним. */
+@media (max-width: 768px) and (orientation: landscape) and (max-height: 520px) {
+  .scrub-stage {
+    --m-frame-w: min(100vw, calc((100svh - var(--chap-h)) * 0.56 * var(--shot-ar) * var(--shot-crop)));
+  }
+
+  .scrub-copy {
+    left: max(6vw, env(safe-area-inset-left));
+  }
+}
+
+/* Широкий горизонтальный экран (вёрстка компьютера): кадр вписан в высоту под
+   полосой глав, лесенка подписей короче — иначе последняя уходила за низ. */
+@media (min-width: 769px) and (orientation: landscape) and (max-height: 520px) {
+  /* Кадр между полосой глав сверху и панелью звонка снизу (4.25rem). */
+  .scrub-stage {
+    --shot-mid: calc(var(--chap-h) + (100% - var(--chap-h) - 4.25rem) / 2);
+    --shot-w: min(1280px, 64vw, calc((100svh - var(--chap-h) - 4.25rem) * 16 / 9));
+    --rail-h: max(5rem, calc(100svh - var(--chap-h) - 10rem));
+  }
+
+  .scrub-stage--wide {
+    --shot-w: min(1672px, 83.6vw, calc((100svh - var(--chap-h) - 4.25rem) * 1672 / 720));
+  }
+
+  .scrub-copy > .scrub-caption {
+    top: calc(var(--anchor, 0) * var(--copy-travel) - var(--head-align, 0px) + 1rem);
+  }
+}
+
+/* Самый маленький горизонтальный экран (вёрстка телефона): подписи слева от
+   кадра, а не под ним — под кадром их закрывала панель звонка (568×270). */
+@media (max-width: 768px) and (orientation: landscape) and (max-height: 520px) {
+  .scrub-stage {
+    --copy-travel: 0px;
+  }
+
+  .scrub-copy {
+    top: calc(var(--chap-h) + 0.75rem);
+    width: calc(100vw - var(--m-frame-w) - max(6vw, env(safe-area-inset-left)) - 1.25rem);
+  }
+
+  .scrub-copy > .scrub-caption {
+    width: 100%;
+  }
+}
+
+/* Вводный текст главы «Грузим» на невысоком экране компактнее: кадр стоит
+   под полосой глав, и низ абзаца уходил под нижнюю панель (узкие телефоны
+   290–350 px, iPhone 17 Pro с крупным шрифтом, горизонтально 780×310). */
+@media (max-width: 768px) and (max-height: 720px), (max-width: 360px), (orientation: landscape) and (max-height: 520px) {
+  .scrub-copy .hero-copy h2 {
+    font-size: min(var(--text-hero), 7.4svh, 10.5vw);
+  }
+
+  .scrub-copy .hero-copy p {
+    margin-top: 0.75rem;
+    font-size: 0.9375rem;
+    line-height: 1.45;
+  }
+}
+
+@media (max-width: 340px) {
+  .scrub-copy .hero-copy p {
+    font-size: 0.875rem;
+  }
+}
+
+/* Конец подвала не уходит под нижнюю панель звонка: с крупным шрифтом
+   панель в две строки, и прежних 6.5rem не хватало (шрифт 130%%, 360–390 px). */
+@media (max-width: 768px) {
+  .site-footer {
+    padding-bottom: 9rem;
+  }
+}
+
+/* Невысокий телефон: текст главы начинается на затемнённом низу кадра (там
+   картинка уже растворяется в фоне), а не под ним — так вводный абзац не
+   уходит под нижнюю панель даже с крупным шрифтом (iPhone 17 Pro, 402×694).
+   Горизонтальный экран не трогаем: там подписи стоят слева от кадра. */
+@media (max-width: 768px) and (max-height: 720px) and (orientation: portrait) {
+  .scrub-copy {
+    top: calc(var(--m-frame-w) / var(--shot-ar) / var(--shot-crop) * 0.84 + var(--chap-h) + 0.5rem);
+  }
 }

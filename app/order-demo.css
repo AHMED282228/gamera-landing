@@ -7,9 +7,26 @@
 
 /* --- Раскладка блока ------------------------------------------------------ */
 
+.order-track {
+  margin-top: var(--spacing-block);
+}
+
+/* Со скриптом: под блоком дорожка прокрутки (--units высот окна, считает
+   OrderDemo по длительности этапов), на ней залипший экран высотой в окно. */
+html.js .order-track {
+  --unit: 100svh;
+  height: calc(var(--units) * var(--unit) + 100svh);
+}
+
+html.js .order-pin {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  overflow: hidden;
+}
+
 .order-wrap {
   position: relative;
-  margin-top: var(--spacing-block);
 }
 
 .order-steps {
@@ -80,20 +97,27 @@
 .order-dashes__fill {
   position: absolute;
   inset: 0;
-  clip-path: inset(0 0 100% 0);
+  /* Наливается сверху вниз вместе с прокруткой: --fill (0…1) ставит OrderDemo
+     на каждом кадре, кончик доходит до следующего кружка ровно тогда, когда
+     тот загорается. Без перехода — плавность даёт сглаженная прокрутка. */
+  clip-path: inset(0 0 calc((1 - var(--fill, 0)) * 100%) 0);
   filter: drop-shadow(0 0 3px rgb(255 178 30 / 0.7));
-  transition: clip-path 900ms var(--ease-out-quart);
-}
-
-.order-dashes.is-lit .order-dashes__fill {
-  clip-path: inset(0);
 }
 
 .order-step__body {
   max-width: 34rem;
   padding-top: 0.45rem;
-  padding-bottom: clamp(3.5rem, 12vh, 7rem);
+  padding-bottom: 3rem;
   transition: opacity 500ms var(--ease-out-quart);
+}
+
+/* Расстояние от кружка до кружка — одно на все пункты, не по длине текста
+   (у третьего пункта ещё плашка статуса): пунктиры равные (владелец,
+   15 ноября 2026). По величине — как было до привязки телефона к прокрутке
+   (~250 px на 1440 × 900): длинные разрывы владельцу не понравились. Текст
+   пункта не выше ~12rem, так что место задаёт высота, а не содержимое. */
+.order-step:not(:last-child) {
+  height: clamp(14rem, 28vh, 17rem);
 }
 
 .order-step:last-child .order-step__body {
@@ -139,7 +163,9 @@
   pointer-events: none;
 }
 
-/* Компьютер: этапы слева, телефон закреплён справа. */
+/* Компьютер: этапы слева, телефон справа. Со скриптом список едет внутри
+   окна (OrderDemo двигает его transform-ом): текущее место — на 36% высоты,
+   прошедшие этапы растворяются вверху, следующие — внизу. */
 @media (min-width: 1024px) {
   .order-wrap {
     display: grid;
@@ -148,9 +174,47 @@
     align-items: start;
   }
 
-  /* Снизу справа висит панель с кнопками (≈6 rem) — телефон кончается выше. */
   .order-stage {
     order: 2;
+  }
+
+  .order-side {
+    order: 1;
+  }
+
+  /* Отступ от заголовка до пункта 1 даёт сам залипший экран (место под
+     полосой глав, 5.25rem) — второй отступ сверху был лишним разрывом. */
+  html.js .order-track {
+    margin-top: 0;
+  }
+
+  /* Кнопки — под списком на том же экране, а не после всей дорожки. */
+  .order-cta--after {
+    display: none;
+  }
+
+  /* Залипший экран обрезает всё по своему краю, а край шёл ровно по кружкам
+     пунктов — свечение горящего кружка срезалось слева. Экран шире влево на
+     2.5rem (в поле страницы, оно везде шире), содержимое — на прежнем месте. */
+  html.js .order-pin {
+    margin-left: -2.5rem;
+    padding-left: 2.5rem;
+  }
+
+  /* Сверху полоса глав, снизу справа панель с кнопками (≈6 rem). */
+  html.js .order-wrap {
+    box-sizing: border-box;
+    height: 100%;
+    padding-top: 5.25rem;
+    padding-bottom: 7.25rem;
+    align-items: stretch;
+  }
+
+  html.js .order-stage {
+    height: 100%;
+  }
+
+  html:not(.js) .order-stage {
     position: sticky;
     top: 5.25rem;
     height: calc(100svh - 5.25rem - 7.25rem);
@@ -160,17 +224,62 @@
     height: 100%;
   }
 
-  .order-steps {
-    order: 1;
-    padding-top: 16svh;
-    padding-bottom: 34svh;
+  html.js .order-side {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  /* Список едет внутри окна, пока не помещается. Край растворяется, только
+     когда за ним есть пункты (--ft сверху, --fb снизу ставит OrderDemo):
+     в начале пункт 1 стоит чётко у верха, в конце пункт 5 — чётко у кнопок. */
+  html.js .order-view {
+    --ft: 0;
+    --fb: 1;
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    /* Запас под свечение горящего кружка (кольцо 6 px + размытие 26 px): окно
+       шире и выше на 2rem, а содержимое стоит на прежнем месте — иначе
+       свечение срезалось краем окна (владелец, 15 ноября 2026). */
+    margin: -2rem 0 0 -2rem;
+    padding: 2rem 0 0 2rem;
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      transparent,
+      #000 calc(var(--ft) * 14%),
+      #000 calc(100% - var(--fb) * 22%),
+      transparent
+    );
+    mask-image: linear-gradient(
+      to bottom,
+      transparent,
+      #000 calc(var(--ft) * 14%),
+      #000 calc(100% - var(--fb) * 22%),
+      transparent
+    );
+  }
+
+  .order-cta--pin {
+    flex: none;
+    margin-top: 1.5rem;
+  }
+
+  html.js .order-steps {
+    will-change: transform;
+  }
+
+  html:not(.js) .order-steps {
+    padding-top: 2rem;
+    padding-bottom: 1rem;
   }
 
   .order-cap {
     display: none;
   }
 
-  /* Не текущий этап приглушён, но читается. */
+  /* Не пройденный ещё этап приглушён, но читается. */
   html.js .order-step:not(.is-lit) .order-step__body {
     opacity: 0.4;
   }
@@ -180,19 +289,34 @@
   }
 }
 
-/* Телефон и планшет: iPhone закреплён, над ним подпись этапа; список
-   этапов — только длина прокрутки (текст остаётся для экранного чтеца). */
+/* Телефон и планшет: на экране подпись этапа с полоской хода и iPhone;
+   список этапов — только для экранного чтеца. */
 @media (max-width: 1023.98px) {
+  html.js .order-wrap {
+    height: 100%;
+  }
+
+  .order-cta--pin {
+    display: none;
+  }
+
+  /* Под iPhone в залипшем экране пусто 5.75rem (там нижняя панель с
+     кнопками); когда блок уехал, кнопки встают в это место — 1.5rem от
+     телефона, а не 8 с лишним. position — чтобы рисоваться поверх
+     прозрачного низа залипшего экрана. */
+  html.js .order-cta--after {
+    position: relative;
+    margin-top: -4.25rem;
+  }
+
   html.js .order-stage {
-    position: sticky;
-    top: 3.75rem;
-    z-index: 2;
     display: flex;
     flex-direction: column;
     gap: 0.9rem;
+    box-sizing: border-box;
     height: calc(100svh - 3.75rem - 5.75rem);
+    margin-top: 3.75rem;
     padding-top: 0.5rem;
-    background: var(--color-bg);
   }
 
   html.js .order-phone {
@@ -200,30 +324,46 @@
     min-height: 0;
   }
 
-  html.js .order-step {
-    height: 55svh;
-  }
-
-  html.js .order-node,
-  html.js .order-dashes {
-    display: none;
-  }
-
-  html.js .order-step__body {
+  html.js .order-view {
     position: absolute;
     width: 1px;
     height: 1px;
-    padding: 0;
     overflow: hidden;
     clip-path: inset(50%);
     white-space: nowrap;
   }
 
   .order-cap {
+    position: relative;
     display: flex;
     gap: 0.85rem;
     align-items: flex-start;
     min-height: 4.75rem;
+    padding-bottom: 0.6rem;
+  }
+
+  /* Ход этапа под подписью: тонкая янтарная полоса растёт с прокруткой. */
+  .order-cap::after,
+  .order-cap__bar {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 2px;
+    border-radius: 2px;
+  }
+
+  .order-cap::after {
+    background: rgb(233 233 226 / 0.1);
+  }
+
+  .order-cap__bar {
+    z-index: 1;
+    background: var(--color-amber);
+    box-shadow: 0 0 8px rgb(255 178 30 / 0.55);
+    transform: scaleX(0);
+    transform-origin: 0 50%;
   }
 
   html:not(.js) .order-cap {
@@ -284,7 +424,9 @@
   position: relative;
   width: 100%;
   height: 100%;
-  min-height: 18rem;
+  /* Не выше 30% экрана: с крупным шрифтом подпись этапа растёт, и iPhone
+     в 18rem вылезал за низ экрана (проверка 16 ноября 2026, шрифт 130%). */
+  min-height: min(18rem, 30svh);
 }
 
 .iphone {
@@ -372,8 +514,20 @@
   -webkit-font-smoothing: antialiased;
 }
 
+/* Шрифт. На iPhone и Mac (Safari) — системный SF, как в самом Telegram. На
+   остальных — Inter, сжатый на 0,03em: так ширина строк совпадает с SF на
+   скрине владельца (замер: «короткую форму — мы свяжемся с» — 276 pt в боте,
+   Inter без сжатия 295, со сжатием 280), и строки переносятся как в боте. */
 .order.is-near .tg {
   font-family: var(--font-inter), -apple-system, system-ui, sans-serif;
+  letter-spacing: -0.03em;
+}
+
+@supports (font: -apple-system-body) {
+  .order.is-near .tg {
+    font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    letter-spacing: normal;
+  }
 }
 
 .tg-status {
@@ -437,28 +591,25 @@
     radial-gradient(90% 45% at 30% 100%, rgb(70 48 110 / 0.28), transparent 70%),
     radial-gradient(80% 40% at 90% 30%, rgb(60 44 90 / 0.18), transparent 70%),
     #000;
-  transform-origin: 50% 0;
-  transition:
-    transform 560ms cubic-bezier(0.32, 0.72, 0, 1),
-    filter 560ms cubic-bezier(0.32, 0.72, 0, 1),
-    border-radius 560ms cubic-bezier(0.32, 0.72, 0, 1);
+  transition: filter 400ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* Узор обоев — как в Telegram на скрине владельца: тонкие фиолетовые
+   рисунки (чашка, лапка, планета, зонт, пицца…) по чёрному. */
 .tg-chat::before {
   content: '';
   position: absolute;
   inset: 0;
-  opacity: 0.13;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96' fill='none' stroke='%23bbb' stroke-width='1.6' stroke-linecap='round'%3E%3Ccircle cx='16' cy='18' r='6'/%3E%3Cpath d='M58 10l4 8 8 1-6 6 2 8-8-4-8 4 2-8-6-6 8-1z'/%3E%3Cpath d='M12 62h14M19 55v14'/%3E%3Crect x='52' y='56' width='20' height='14' rx='4'/%3E%3Cpath d='M84 40c4-6 10 0 4 6l-6 5-6-5c-6-6 0-12 4-6'/%3E%3Cpath d='M34 86q6-8 12 0t12 0'/%3E%3C/svg%3E");
-  background-size: 84px 84px;
+  opacity: 0.24;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' fill='none' stroke='%23a48fd0' stroke-width='1.15' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 22h18v10a8 8 0 0 1-8 8h-2a8 8 0 0 1-8-8zM32 25h3a4 4 0 0 1 0 8h-3M20 16q-2-4 1-7M26 16q-2-4 1-7'/%3E%3Cpath d='M66 40c0-5 4-8 8-8s8 3 8 8-4 6-8 6-8-1-8-6z'/%3E%3Ccircle cx='64' cy='28' r='3'/%3E%3Ccircle cx='70' cy='23' r='3'/%3E%3Ccircle cx='78' cy='23' r='3'/%3E%3Ccircle cx='84' cy='28' r='3'/%3E%3Cpath d='M130 8l3.5 7 7.5 1-5.5 5.5 1.5 7.5-7-3.5-7 3.5 1.5-7.5-5.5-5.5 7.5-1z'/%3E%3Ccircle cx='176' cy='36' r='9'/%3E%3Cellipse cx='176' cy='36' rx='17' ry='5' transform='rotate(-20 176 36)'/%3E%3Cpath d='M14 96c0-15 12-25 25-25 0 14-10 25-25 25zM14 96l14-14'/%3E%3Cpath d='M80 96c-8-6-12-10-12-15a6 6 0 0 1 12-2 6 6 0 0 1 12 2c0 5-4 9-12 15z'/%3E%3Cpath d='M114 86a16 16 0 0 1 32 0q-4-4-8 0-4-4-8 0-4-4-8 0-4-4-8 0zM130 86v13a3 3 0 0 1-6 0'/%3E%3Cpath d='M165 76l22 6-14 22zM168 81l16 5'/%3E%3Ccircle cx='175' cy='89' r='1.6'/%3E%3Ccircle cx='178' cy='95' r='1.6'/%3E%3Cpath d='M22 150v-22l14-4v22'/%3E%3Ccircle cx='18' cy='150' r='4'/%3E%3Ccircle cx='32' cy='146' r='4'/%3E%3Cpath d='M80 140a3 3 0 1 1 3 3 6 6 0 1 1-6-6 9 9 0 1 1 9 9'/%3E%3Cpath d='M130 150c-8 0-12-8-12-14a12 12 0 0 1 24 0c0 6-4 14-12 14zM130 150l-2 4h4zM130 154q-4 8 2 16'/%3E%3Cpath d='M175 124a10 10 0 0 1 6 18v4h-12v-4a10 10 0 0 1 6-18zM170 151h10'/%3E%3Ccircle cx='24' cy='190' r='5'/%3E%3Ccircle cx='38' cy='188' r='5'/%3E%3Cpath d='M24 185q4-13 14-16M38 183q-2-8 0-14'/%3E%3Cpath d='M70 186l30-12-8 26-7-9zM85 191l15-17'/%3E%3Cpath d='M125 186q10-10 22 0-12 10-22 0zM147 186l8-6v12z'/%3E%3Ccircle cx='131' cy='184' r='1'/%3E%3Ccircle cx='106' cy='56' r='3'/%3E%3Ccircle cx='54' cy='116' r='2.5'/%3E%3Ccircle cx='160' cy='62' r='2'/%3E%3Ccircle cx='108' cy='166' r='3'/%3E%3Ccircle cx='190' cy='172' r='2.5'/%3E%3Ccircle cx='48' cy='60' r='2'/%3E%3Cpath d='M100 118l4 4M104 118l-4 4M152 118l4 4M156 118l-4 4M44 166l4 4M48 166l-4 4'/%3E%3C/svg%3E");
+  background-size: 210px 210px;
   pointer-events: none;
 }
 
-/* Мини-приложение открыто: чат за ним уходит вглубь, как лист в iOS. */
+/* Мини-приложение открыто: чат за ним остаётся на месте и только темнеет на
+   ~28% (запись экрана владельца: 197 → 142 по красному каналу). */
 .tg--sheet .tg-chat {
-  transform: translateY(10px) scale(0.94);
-  filter: brightness(0.35);
-  border-radius: 38px;
+  filter: brightness(0.72);
 }
 
 .tg-nav {
@@ -471,7 +622,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 14px;
 }
 
 .tg-glass {
@@ -496,9 +647,9 @@
 
 .tg-back {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   width: auto;
-  padding: 0 9px 0 14px;
+  padding: 0 8px 0 13px;
   border-radius: 22px;
 }
 
@@ -523,12 +674,12 @@
   justify-content: center;
   min-width: 0;
   height: 44px;
-  padding: 0 18px;
+  padding: 0 12px;
   border-radius: 22px;
 }
 
 .tg-title b {
-  max-width: 196px;
+  max-width: 192px;
   overflow: hidden;
   font-size: 17px;
   font-weight: 600;
@@ -550,20 +701,26 @@
   width: 44px;
   height: 44px;
   overflow: hidden;
+  padding: 2px;
   border-radius: 50%;
-  background: #0a0b0e;
-  box-shadow: inset 0 0 0 0.5px rgb(255 255 255 / 0.18);
+  /* В боте аватар сидит в стеклянном кольце, как остальные кнопки шапки. */
+  background: rgb(30 30 34 / 0.7);
+  box-shadow:
+    inset 0 0.5px 0 rgb(255 255 255 / 0.28),
+    inset 0 0 0 0.5px rgb(255 255 255 / 0.14);
 }
 
 .tg-ava img {
   width: 100%;
   height: 100%;
+  max-width: none;
+  border-radius: 50%;
 }
 
 .tg-feed {
   position: absolute;
   top: 104px;
-  bottom: 94px;
+  bottom: 74px;
   left: 0;
   right: 0;
   display: flex;
@@ -581,14 +738,15 @@
   margin: 4px 0 6px;
   padding: 3px 10px;
   border-radius: 12px;
-  background: rgb(0 0 0 / 0.32);
+  /* Как на записи экрана владельца — та же лиловая плашка, что «Сообщений пока нет...». */
+  background: rgb(32 25 37);
   font-size: 13px;
   font-weight: 500;
 }
 
 .tg-msg {
   position: relative;
-  max-width: 300px;
+  max-width: 312px;
   padding: 7px 11px 8px 12px;
   border-radius: 18px;
   font-size: 17px;
@@ -604,15 +762,17 @@
 .tg-msg--in {
   align-self: flex-start;
   border-bottom-left-radius: 6px;
-  /* Пузырь бота на скриншоте — тёмный с фиолетовым отливом книзу. */
-  background: linear-gradient(180deg, rgb(28 27 32 / 0.97), rgb(42 38 50 / 0.97));
+  /* Цвета сняты со скрина владельца по пикселям: сверху тёплый
+     (54 38 39), книзу сине-фиолетовый (36 35 51). */
+  background: linear-gradient(180deg, rgb(50 37 42 / 0.97), rgb(43 37 46 / 0.97) 45%, rgb(36 35 51 / 0.97));
   transform-origin: 0 100%;
 }
 
 .tg-msg--out {
   align-self: flex-end;
   border-bottom-right-radius: 6px;
-  background: linear-gradient(170deg, #61bcf9, #0088ff);
+  /* Как на записи экрана владельца: ровный синий 51 92 255 (тема его Telegram). */
+  background: rgb(51 92 255);
   transform-origin: 100% 100%;
 }
 
@@ -630,18 +790,23 @@
   color: rgb(255 255 255 / 0.45);
 }
 
-/* Фото над подписью: во всю ширину пузыря, углы сверху — как у пузыря. */
+/* Фото над подписью — как в Telegram на скрине владельца: во всю ширину
+   пузыря с отступом в 1 pt, верхние углы повторяют пузырь, нижние скруглены
+   слегка. max-width: none — иначе общее правило сайта для картинок (100%)
+   урезало фото на 23 px, и правый край не доходил до края пузыря. */
 .tg-msg--photo {
   padding-top: 0;
-  overflow: hidden;
 }
 
 .tg-photo {
   display: block;
-  width: calc(100% + 23px);
+  width: calc(100% + 21px);
+  max-width: none;
   height: auto;
-  margin: 0 -11px 7px -12px;
+  margin: 1px -10px 8px -11px;
   aspect-ratio: 1;
+  border-radius: 17px 17px 6px 6px;
+  background: #000;
 }
 
 .tg-msg--out .tg-time {
@@ -652,8 +817,8 @@
   align-self: flex-start;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  width: 300px;
+  gap: 3px;
+  width: 312px;
   animation: tg-in 320ms cubic-bezier(0.2, 0.9, 0.25, 1) both;
   transform-origin: 0 100%;
 }
@@ -670,12 +835,12 @@
 
 .tg-share {
   position: absolute;
-  right: -42px;
-  bottom: 4px;
+  right: -40px;
+  bottom: 2px;
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   background: rgb(44 44 48 / 0.75);
   box-shadow: inset 0 0.5px 0 rgb(255 255 255 / 0.2);
@@ -683,12 +848,12 @@
 
 .tg-kb {
   display: grid;
-  gap: 4px;
+  gap: 3px;
 }
 
 .tg-kb__row {
   display: flex;
-  gap: 4px;
+  gap: 3px;
 }
 
 .tg-key {
@@ -696,11 +861,12 @@
   flex: 1;
   display: grid;
   place-items: center;
-  height: 42px;
+  height: 41px;
   padding: 0 6px;
   overflow: hidden;
-  border-radius: 13px;
-  background: rgb(40 39 45 / 0.92);
+  border-radius: 14px;
+  /* Как на скрине: 48 44 61. */
+  background: rgb(48 44 61 / 0.94);
   box-shadow: inset 0 0.5px 0 rgb(255 255 255 / 0.08);
   font-size: 17px;
   white-space: nowrap;
@@ -721,13 +887,18 @@
 .tg-input {
   position: absolute;
   z-index: 3;
-  left: 14px;
-  right: 14px;
-  bottom: 40px;
-  height: 44px;
+  left: 26px;
+  right: 26px;
+  bottom: 28px;
+  height: 39px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
+}
+
+.tg-input .tg-round {
+  width: 39px;
+  height: 39px;
 }
 
 .tg-field {
@@ -736,9 +907,9 @@
   align-items: center;
   justify-content: space-between;
   min-width: 0;
-  height: 44px;
-  padding: 0 12px 0 16px;
-  border-radius: 22px;
+  height: 39px;
+  padding: 0 9px 0 14px;
+  border-radius: 20px;
   font-size: 17px;
   color: rgb(255 255 255 / 0.42);
 }
@@ -749,12 +920,181 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 44px;
-  padding: 0 16px 0 15px;
-  border-radius: 22px;
+  height: 39px;
+  padding: 0 15px 0 14px;
+  border-radius: 20px;
+  /* Синяя кнопка в тёмном стеклянном ободке, как на скрине. */
+  border: 2px solid rgb(38 38 44 / 0.95);
+  background: #3c7cf6;
+  background-clip: padding-box;
+  box-shadow: 0 0 0 0.5px rgb(255 255 255 / 0.16);
+  font-size: 17px;
+  font-weight: 600;
+}
+
+/* --- Новый чат с ботом: «Старт» вместо строки ввода ------------------------
+   По записи экрана iPhone владельца (390 pt в ширину, пересчёт на 402):
+   кнопка 48 pt, поля по 18.5 pt, низ на 40 pt от края экрана; подсказка
+   47 pt высотой, на 12 pt выше кнопки, с хвостиком вниз; «Сообщений пока
+   нет...» — плашка 26 pt посередине чата. Цвета сняты по пикселям. */
+
+.tg-empty {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  top: 51%;
+  height: 26px;
+  padding: 0 11px;
+  border-radius: 13px;
+  background: rgb(32 25 37);
+  font-size: 14px;
+  line-height: 26px;
+  white-space: nowrap;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: opacity 180ms ease;
+  pointer-events: none;
+}
+
+.tg--fresh .tg-empty {
+  opacity: 1;
+}
+
+.tg-start {
+  position: absolute;
+  z-index: 4;
+  left: 18px;
+  right: 18px;
+  bottom: 40px;
+  height: 48px;
+  pointer-events: none;
+}
+
+.tg-tip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 12px);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 47px;
+  padding: 0 16px 0 14px;
+  border-radius: 14px;
+  background: #19181a;
+  font-size: 15px;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+/* Хвостик подсказки — к кнопке. */
+.tg-tip::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  margin-left: -9px;
+  border: 9px solid transparent;
+  border-top-color: #19181a;
+  border-bottom-width: 0;
+}
+
+.tg-tip svg {
+  flex: none;
+}
+
+/*
+ * Кнопка «Старт». После касания она не исчезает, а сжимается в «Меню» (как на
+ * записи): видимая часть кнопки (clip-path) съезжается к месту «Меню», текст
+ * гаснет, цвет — от нажатого к синему «Меню»; в конце настоящая «Меню»
+ * проявляется поверх, а остальная строка ввода выезжает справа.
+ * Место «Меню» относительно кнопки: слева 8 px, высота 39, низ на 12 px ниже.
+ */
+.tg-start__btn {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 24px;
   background: #3c7cf6;
   font-size: 17px;
-  font-weight: 500;
+  font-weight: 600;
+  clip-path: inset(9px 258px 0 8px round 20px);
+  transform: translateY(12px);
+  opacity: 0;
+  transition:
+    clip-path 380ms cubic-bezier(0.32, 0.72, 0, 1),
+    transform 380ms cubic-bezier(0.32, 0.72, 0, 1),
+    background-color 260ms ease,
+    opacity 120ms linear 300ms;
+}
+
+.tg-start__label {
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.tg--fresh .tg-tip,
+.tg--fresh .tg-start__label {
+  opacity: 1;
+}
+
+.tg--fresh .tg-start__btn {
+  /* Синяя со светлым кантом сверху и слева — «жидкое стекло» iOS. */
+  background: #347af6;
+  box-shadow:
+    inset 0 1px 0 rgb(150 210 255 / 0.85),
+    inset 1px 0 0 rgb(130 200 255 / 0.4),
+    inset -1px 0 0 rgb(130 200 255 / 0.25);
+  clip-path: inset(0 0 0 0 round 24px);
+  transform: none;
+  opacity: 1;
+  transition:
+    clip-path 240ms ease,
+    transform 240ms ease,
+    background-color 120ms ease,
+    opacity 0ms;
+}
+
+/* Нажата: темнеет, текст тускнеет (кадр записи: 32 66 125). */
+.tg--fresh .tg-start__btn.is-press {
+  background: rgb(32 66 125);
+}
+
+.tg-start__btn.is-press .tg-start__label {
+  opacity: 0.55;
+}
+
+/* Строка ввода в новом чате спрятана; после «Старт» — выезжает справа. */
+.tg-input > * {
+  transition:
+    opacity 220ms ease 160ms,
+    transform 420ms cubic-bezier(0.2, 0.9, 0.25, 1) 120ms;
+}
+
+.tg-input > :first-child {
+  transition: opacity 100ms linear 300ms;
+}
+
+.tg-input > :nth-child(3) {
+  transition-delay: 200ms, 160ms;
+}
+
+.tg-input > :nth-child(4) {
+  transition-delay: 240ms, 200ms;
+}
+
+.tg--fresh .tg-input > * {
+  opacity: 0;
+  transform: translateX(28px);
+  transition:
+    opacity 120ms ease,
+    transform 160ms ease;
+}
+
+.tg--fresh .tg-input > :first-child {
+  transform: none;
 }
 
 .tg-home {
@@ -813,9 +1153,14 @@
   border-radius: 38px 38px 0 0;
   background: #0b0b0d;
   color: #f4f5f7;
-  box-shadow: 0 -10px 30px rgb(0 0 0 / 0.45);
+  box-shadow:
+    inset 0 0.5px 0 rgb(255 255 255 / 0.18),
+    0 -10px 30px rgb(0 0 0 / 0.45);
   transform: translateY(102%);
-  transition: transform 560ms cubic-bezier(0.32, 0.72, 0, 1);
+  /* Выезд — как на записи владельца: резкий старт, половина пути за ~70 мс,
+     на месте за ~0,4 с. В Telegram незагрузившаяся форма встаёт на пол-экрана
+     и её дотягивают пальцем; здесь форма загружена — выезжает сразу целиком. */
+  transition: transform 400ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .tma-sheet.is-open {
@@ -886,10 +1231,12 @@
 }
 
 .tma-scroll {
+  /* Отсчёт offsetTop полей (прокрутка формы к «Куда»). */
+  position: relative;
   padding: 16px 14px 40px;
   font-size: 15px;
   line-height: 1.45;
-  transition: transform 800ms cubic-bezier(0.45, 0, 0.2, 1);
+  transition: transform 600ms cubic-bezier(0.45, 0, 0.2, 1);
 }
 
 .order.is-near .tma-scroll {
@@ -1088,13 +1435,16 @@
   color: #9ca0a8;
 }
 
+/* Остриё метки — в центре карты: туда же приближается карта (как в боте:
+   iconAnchor 16 × 36 у метки 32 × 40). */
 .tma-pin {
   position: absolute;
-  left: 44%;
-  top: 36%;
+  z-index: 1;
+  left: calc(50% - 16px);
+  top: calc(50% - 36px);
   width: 32px;
   height: 32px;
-  animation: tma-drop 240ms ease-out both;
+  animation: tma-drop 260ms ease-out 380ms both;
 }
 
 .tma-pin span {
@@ -1292,3 +1642,293 @@
     transition: none;
   }
 }
+
+
+/* ==========================================================================
+   Действия в форме идут за прокруткой (TgDemo: posAt, OrderForm)
+   ========================================================================== */
+
+/* Касание пальцем — круг, как на записи экрана iPhone: видно, что нажимают.
+   Держится, пока идёт шаг касания: прокрутку можно остановить и рассмотреть. */
+.tg-key,
+.tma-chips span,
+.tma-seg span,
+.tma-check,
+.tma-confirm,
+.tma-primary {
+  position: relative;
+}
+
+.tg-touch {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 2;
+  width: 38px;
+  height: 38px;
+  margin: -19px 0 0 -19px;
+  border: 2px solid rgb(255 255 255 / 0.75);
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.32);
+  box-shadow: 0 0 0 6px rgb(255 255 255 / 0.1);
+  pointer-events: none;
+  animation: tg-touch 260ms cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+
+.tma-check .tg-touch {
+  width: 34px;
+  height: 34px;
+  margin: -17px 0 0 -17px;
+}
+
+@keyframes tg-touch {
+  from {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+}
+
+/* Нажатая кнопка (оценка в чате) остаётся подсвеченной. */
+.tg-key.is-picked {
+  background: rgb(255 255 255 / 0.22);
+}
+
+/* Курсор, пока поле печатается по буквам. */
+.tma-caret {
+  display: inline-block;
+  width: 1.5px;
+  height: 1.05em;
+  margin-left: 1px;
+  vertical-align: -0.17em;
+  background: #f4f5f7;
+  animation: tma-caret 1s steps(1) infinite;
+}
+
+@keyframes tma-caret {
+  50% {
+    opacity: 0;
+  }
+}
+
+.tma-input.is-typing {
+  position: relative;
+  border-color: #e11d25;
+}
+
+/* Значение подставилось само (номер из Telegram, адрес по GPS) — короткая
+   подсветка, пока идёт этот шаг. */
+.tma-input.is-new {
+  border-color: #4caf6d;
+  box-shadow: 0 0 0 3px rgb(76 175 109 / 0.22);
+  transition:
+    border-color 300ms,
+    box-shadow 300ms;
+}
+
+.tma-input {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.tma-area {
+  white-space: normal;
+}
+
+/* «Отправляем…»: как в боте — кнопка неактивна и тускнеет (opacity .6). */
+.tma-primary.is-sending {
+  opacity: 0.6;
+  transform: scale(0.99);
+}
+
+/* Карта: снимки масштабов 9…16 друг над другом, кадры приближения ставит
+   MapTile (scale и opacity прямо в стиле). Фильтр бота — на общем слое. */
+.tma-map__layers {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  filter: brightness(0.72) contrast(1.06) saturate(0.55);
+}
+
+.tma-map__img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  object-fit: cover;
+  transform-origin: 50% 50%;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+.tma-map__img--scheme {
+  filter: brightness(0.72) contrast(1.06) saturate(0.55);
+  transition: transform 1500ms cubic-bezier(0.45, 0, 0.55, 1);
+}
+
+.tma-map.is-located .tma-map__img--scheme {
+  transform: scale(1.7);
+}
+
+.tma-map__img--scheme svg {
+  filter: none;
+}
+
+/* Метка падает, когда карта доехала (приближение — 1,5 с). Если этап уже
+   доигран (вернулись прокруткой назад) — стоит сразу. */
+.tma-map .tma-pin {
+  animation-delay: 1520ms;
+}
+
+.tma-map.is-settled .tma-pin {
+  animation: none;
+}
+
+/* Подсказки адресов под полем — как .suggest-list в боте (styles.css). */
+.tma-suggest-wrap {
+  position: relative;
+  display: block;
+}
+
+.tma-suggest {
+  position: absolute;
+  z-index: 3;
+  left: 0;
+  right: 0;
+  top: 100%;
+  display: block;
+  margin-top: 4px;
+  padding: 4px;
+  border: 1px solid #2a2c31;
+  border-radius: 13px;
+  background: #1f2024;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.45);
+  animation: tma-rise 120ms ease-out both;
+}
+
+.tma-suggest > span {
+  position: relative;
+  display: block;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.3;
+  color: #f4f5f7;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tma-suggest > span.is-active {
+  overflow: visible;
+  background: #16171a;
+}
+
+@keyframes tma-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* Кнопку сейчас нажмут, этап ждёт: мягкая пульсация (кольцо расходится). */
+.tg-key.is-hint,
+.tma-primary.is-hint {
+  overflow: visible;
+}
+
+.tg-key.is-hint::before,
+.tma-primary.is-hint::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 0 0 rgb(255 255 255 / 0.5);
+  animation: tg-hint 1.6s cubic-bezier(0.2, 0.7, 0.3, 1) infinite;
+  pointer-events: none;
+}
+
+.tma-primary.is-hint::before {
+  box-shadow: 0 0 0 0 rgb(225 29 37 / 0.65);
+  animation-name: tg-hint-red;
+}
+
+@keyframes tg-hint {
+  0% {
+    box-shadow: 0 0 0 0 rgb(255 255 255 / 0.45);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 9px rgb(255 255 255 / 0);
+  }
+}
+
+@keyframes tg-hint-red {
+  0% {
+    box-shadow: 0 0 0 0 rgb(225 29 37 / 0.6);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 10px rgb(225 29 37 / 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tg-key.is-hint::before,
+  .tma-primary.is-hint::before {
+    animation: none;
+    box-shadow: 0 0 0 2px rgb(255 255 255 / 0.35);
+  }
+}
+
+/* --- Телефон горизонтально (низкий экран до 520 px) ------------------------
+   Проверка по устройствам 16 ноября 2026: iPhone был выше экрана (не меньше
+   18rem), низ обрезался, панель звонка его закрывала. Теперь iPhone слева во
+   всю высоту под полосой глав, подпись этапа справа сверху, панель — в правом
+   нижнем углу и телефон не задевает. */
+@media (max-width: 1023.98px) and (orientation: landscape) and (max-height: 520px) {
+  html.js .order-stage {
+    flex-direction: row-reverse;
+    align-items: stretch;
+    gap: clamp(1.25rem, 4vw, 2.5rem);
+    height: calc(100svh - var(--chap-h) - 1rem);
+    margin-top: calc(var(--chap-h) + 0.5rem);
+    padding-top: 0;
+  }
+
+  html.js .order-phone {
+    flex: none;
+    width: calc((100svh - var(--chap-h) - 1rem) * 434 / 906);
+    height: 100%;
+  }
+
+  .iphone-fit {
+    min-height: 0;
+  }
+
+  .order-cap {
+    flex: 1;
+    align-self: flex-start;
+    max-width: 30rem;
+    min-height: 0;
+  }
+
+  html.js .order-cta--after {
+    margin-top: 1.5rem;
+  }
+}
+
+/* --- Без JS: масштаб iPhone по высоте экрана --------------------------------
+   Масштаб --k ставит скрипт по месту; без скрипта оставалось 0.7, и на
+   невысоком экране iPhone (634 px) не влезал в своё место и наезжал на текст
+   (проверка 16 ноября 2026: 1366×633, телефоны 664–776 px). Ступени подобраны
+   так, чтобы корпус влезал и в 70svh телефона, и в окно компьютера. */
+@media (max-height: 900px) { html:not(.js) .iphone-fit { --k: 0.62; } }
+@media (max-height: 800px) { html:not(.js) .iphone-fit { --k: 0.56; } }
+@media (max-height: 720px) { html:not(.js) .iphone-fit { --k: 0.5; } }
+@media (max-height: 640px) { html:not(.js) .iphone-fit { --k: 0.43; } }
+@media (max-height: 560px) { html:not(.js) .iphone-fit { --k: 0.36; } }
+@media (max-height: 480px) { html:not(.js) .iphone-fit { --k: 0.3; } }
+@media (max-width: 340px) { html:not(.js) .iphone-fit { --k: 0.55; } }

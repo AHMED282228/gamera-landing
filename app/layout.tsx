@@ -7,6 +7,7 @@ import { businessJsonLd } from '@/lib/jsonld'
 import './globals.css'
 import './order-demo.css'
 import './sections.css'
+import './tour.css'
 
 /*
  * Заголовки — Geologica: кириллица в ней родная, а оси наклона (slnt) и
